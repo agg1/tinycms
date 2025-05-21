@@ -1,5 +1,5 @@
 #!/bin/sh -e
-# TinCMS web content management system written in shell script inspired by mkws.sh
+# TinyCMS web content management system written in shell script inspired by mkws.sh
 # aggi (c) 2025
 
 CWD="$(pwd)"

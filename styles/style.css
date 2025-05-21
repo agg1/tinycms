@@ -1,3 +1,5 @@
+/* derived from mkws.sh example template */
+
 :root {
 	--foreground: peru;
 	--advice: peru;
@@ -27,7 +29,7 @@ div.col {
 	border: 4px double var(--foreground);
 	border-radius: 0.25em;
 	padding: 1em;
-	overflow: auto; /* if an floating image is placed within prevent overflow */
+	overflow: auto; /* if a floating image is placed within prevent overflow */
 }
 div.colleft {
 	margin: 10px 0px 0px 0px;
