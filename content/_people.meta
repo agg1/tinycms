@@ -1,0 +1,3 @@
+TINYCMS_CONTENT_HANDLER=tinycms_default_content
+TINYCMS_PRETEXT_ITEM=""
+TINYCMS_CONTENT_ITEMS="content/myself.htm"

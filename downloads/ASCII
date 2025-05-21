@@ -1,0 +1,490 @@
+US-ASCII
+- encodes 128 specified characters into seven-bit integers
+- 95 characters are printable
+- 33 non-printing control codes, 0..31
+- transmission least significant bit first
+- patterned most control codes together and all graphic codes together
+- ESC usually indicates the start of a command sequence
+- In C library and Unix conventions, the null character is used to terminate text strings
+- ISO/IEC 646, like ASCII, is a 7-bit character set. It does not make any additional codes available, so the same code
+- points encoded different characters in different countries.
+- The IBM PC defined code page 437, which replaced the control characters with graphic symbols such as smiley faces.
+- The ISO/IEC 8859 standard (derived from the DEC-MCS) finally provided a standard
+- that most systems copied (at least as
+- Windows-1252 (often mislabeled as ISO-8859-1) with typographic punctuation marks needed for traditional text printing
+- ASCII was incorporated into the Unicode (1991) character set as the first 128 symbols, so the 7-bit ASCII characters
+  have the same numeric codes in both sets. This allows UTF-8 to be backward compatible with 7-bit ASCII
+- ANSI escape sequences are a standard for in-band signaling
+
+ Binary  Oct Dec Hex  Abbreviation   Caret notation     Escape Sequences       Name (1967)
+                     1963  1965 1967
+000 0000 000 0   00  NULL  NUL       ^@                 \0                     Null
+000 0001 001 1   01  SOM   SOH       ^A                                        Start of Heading
+000 0010 002 2   02  EOA   STX       ^B                                        Start of Text
+000 0011 003 3   03  EOM   ETX       ^C                                        End of Text
+000 0100 004 4   04  EOT             ^D                                        End of Transmission
+000 0101 005 5   05  WRU   ENQ       ^E                                        Enquiry
+000 0110 006 6   06  RU    ACK       ^F                                        Acknowledgement
+000 0111 007 7   07  BELL  BEL       ^G                 \a                     Bell
+000 1000 010 8   08  FE0   BS        ^H                 \b                     Backspace^[e]^[f]
+000 1001 011 9   09  HT/SK HT        ^I                 \t                     Horizontal Tab^[g]
+000 1010 012 10  0A  LF              ^J                 \n                     Line Feed
+000 1011 013 11  0B  VTAB  VT        ^K                 \v                     Vertical Tab
+000 1100 014 12  0C  FF              ^L                 \f                     Form Feed
+000 1101 015 13  0D  CR              ^M                 \r                     Carriage Return^[h]
+000 1110 016 14  0E  SO              ^N                                        Shift Out
+000 1111 017 15  0F  SI              ^O                                        Shift In
+001 0000 020 16  10  DC0   DLE       ^P                                        Data Link Escape
+001 0001 021 17  11  DC1             ^Q                                        Device Control 1 (often XON)
+001 0010 022 18  12  DC2             ^R                                        Device Control 2
+001 0011 023 19  13  DC3             ^S                                        Device Control 3 (often XOFF)
+001 0100 024 20  14  DC4             ^T                                        Device Control 4
+001 0101 025 21  15  ERR   NAK       ^U                                        Negative Acknowledgement
+001 0110 026 22  16  SYNC  SYN       ^V                                        Synchronous Idle
+001 0111 027 23  17  LEM   ETB       ^W                                        End of Transmission Block
+001 1000 030 24  18  S0    CAN       ^X                                        Cancel
+001 1001 031 25  19  S1    EM        ^Y                                        End of Medium
+001 1010 032 26  1A  S2    SS   SUB  ^Z                                        Substitute
+001 1011 033 27  1B  S3    ESC       ^[                 \e^[i]                 Escape^[j]
+001 1100 034 28  1C  S4    FS        ^\                                        File Separator
+001 1101 035 29  1D  S5    GS        ^]                                        Group Separator
+001 1110 036 30  1E  S6    RS        ^^^[k]                                    Record Separator
+001 1111 037 31  1F  S7    US        ^_                                        Unit Separator
+111 1111 177 127 7F  DEL             ^?                                        Delete^[l]^[f]
+
+ Binary   Oct Dec Hex     Glyph
+                      1963 1965 1967
+010 0000  040 32  20   space
+010 0001  041 33  21  !
+010 0010  042 34  22  "
+010 0011  043 35  23  #
+010 0100  044 36  24  $
+010 0101  045 37  25  %
+010 0110  046 38  26  &
+010 0111  047 39  27  '
+010 1000  050 40  28  (
+010 1001  051 41  29  )
+010 1010  052 42  2A  *
+010 1011  053 43  2B  +
+010 1100  054 44  2C  ,
+010 1101  055 45  2D  -
+010 1110  056 46  2E  .
+010 1111  057 47  2F  /
+011 0000  060 48  30  0
+011 0001  061 49  31  1
+011 0010  062 50  32  2
+011 0011  063 51  33  3
+011 0100  064 52  34  4
+011 0101  065 53  35  5
+011 0110  066 54  36  6
+011 0111  067 55  37  7
+011 1000  070 56  38  8
+011 1001  071 57  39  9
+011 1010  072 58  3A  :
+011 1011  073 59  3B  ;
+011 1100  074 60  3C  <
+011 1101  075 61  3D  =
+011 1110  076 62  3E  >
+011 1111  077 63  3F  ?
+100 0000  100 64  40  @    `    @
+100 0001  101 65  41  A
+100 0010  102 66  42  B
+100 0011  103 67  43  C
+100 0100  104 68  44  D
+100 0101  105 69  45  E
+100 0110  106 70  46  F
+100 0111  107 71  47  G
+100 1000  110 72  48  H
+100 1001  111 73  49  I
+100 1010  112 74  4A  J
+100 1011  113 75  4B  K
+100 1100  114 76  4C  L
+100 1101  115 77  4D  M
+100 1110  116 78  4E  N
+100 1111  117 79  4F  O
+101 0000  120 80  50  P
+101 0001  121 81  51  Q
+101 0010  122 82  52  R
+101 0011  123 83  53  S
+101 0100  124 84  54  T
+101 0101  125 85  55  U
+101 0110  126 86  56  V
+101 0111  127 87  57  W
+101 1000  130 88  58  X
+101 1001  131 89  59  Y
+101 1010  132 90  5A  Z
+101 1011  133 91  5B  [
+101 1100  134 92  5C  \    ~    \
+101 1101  135 93  5D  ]
+101 1110  136 94  5E  ↑    ^
+101 1111  137 95  5F  ←    _
+110 0000  140 96  60       @    `
+110 0001  141 97  61       a
+110 0010  142 98  62       b
+110 0011  143 99  63       c
+110 0100  144 100 64       d
+110 0101  145 101 65       e
+110 0110  146 102 66       f
+110 0111  147 103 67       g
+110 1000  150 104 68       h
+110 1001  151 105 69       i
+110 1010  152 106 6A       j
+110 1011  153 107 6B       k
+110 1100  154 108 6C       l
+110 1101  155 109 6D       m
+110 1110  156 110 6E       n
+110 1111  157 111 6F       o
+111 0000  160 112 70       p
+111 0001  161 113 71       q
+111 0010  162 114 72       r
+111 0011  163 115 73       s
+111 0100  164 116 74       t
+111 0101  165 117 75       u
+111 0110  166 118 76       v
+111 0111  167 119 77       w
+111 1000  170 120 78       x
+111 1001  171 121 79       y
+111 1010  172 122 7A       z
+111 1011  173 123 7B       {
+111 1100  174 124 7C  ACK  ¬    |
+111 1101  175 125 7D       }
+111 1110  176 126 7E  ESC  |    ~
+
+Character set[edit]
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ASCII (1977/1986)                                                          │
+├──┬────┬───┬───┬───┬───┬───┬───┬───┬────┬────┬────┬────┬────┬────┬────┬────┤
+│  │0   │1  │2  │3  │4  │5  │6  │7  │8   │9   │A   │B   │C   │D   │E   │F   │
+├──┼────┼───┼───┼───┼───┼───┼───┼───┼────┼────┼────┼────┼────┼────┼────┼────┤
+│0x│NUL │SOH│STX│ETX│EOT│ENQ│ACK│BEL│ BS │ HT │ LF │ VT │ FF │ CR │ SO │ SI │
+├──┼────┼───┼───┼───┼───┼───┼───┼───┼────┼────┼────┼────┼────┼────┼────┼────┤
+│1x│DLE │DC1│DC2│DC3│DC4│NAK│SYN│ETB│CAN │ EM │SUB │ESC │ FS │ GS │ RS │ US │
+├──┼────┼───┼───┼───┼───┼───┼───┼───┼────┼────┼────┼────┼────┼────┼────┼────┤
+│2x│ SP │!  │"  │#  │$  │%  │&  │'  │(   │)   │*   │+   │,   │-   │.   │/   │
+├──┼────┼───┼───┼───┼───┼───┼───┼───┼────┼────┼────┼────┼────┼────┼────┼────┤
+│3x│0   │1  │2  │3  │4  │5  │6  │7  │8   │9   │:   │;   │<   │=   │>   │?   │
+├──┼────┼───┼───┼───┼───┼───┼───┼───┼────┼────┼────┼────┼────┼────┼────┼────┤
+│4x│@   │A  │B  │C  │D  │E  │F  │G  │H   │I   │J   │K   │L   │M   │N   │O   │
+├──┼────┼───┼───┼───┼───┼───┼───┼───┼────┼────┼────┼────┼────┼────┼────┼────┤
+│5x│P   │Q  │R  │S  │T  │U  │V  │W  │X   │Y   │Z   │[   │\   │]   │^   │_   │
+├──┼────┼───┼───┼───┼───┼───┼───┼───┼────┼────┼────┼────┼────┼────┼────┼────┤
+│6x│`   │a  │b  │c  │d  │e  │f  │g  │h   │i   │j   │k   │l   │m   │n   │o   │
+├──┼────┼───┼───┼───┼───┼───┼───┼───┼────┼────┼────┼────┼────┼────┼────┼────┤
+│7x│p   │q  │r  │s  │t  │u  │v  │w  │x   │y   │z   │{   │|   │}   │~   │DEL │
+├──┴────┴───┴───┴───┴───┴───┴───┴───┴────┴────┴────┴────┴────┴────┴────┴────┤
+│  Changed or added in 1963 version                                         │
+│  Changed in both 1963 version and 1965 draft                              │
+└───────────────────────────────────────────────────────────────────────────┘
+
+C0 control codes range 0x20—0x7F
+^   C0  Abbr     Name      Effect
+^G 7    BEL  Bell          Makes an audible noise.
+^H 8    BS   Backspace     Moves the cursor left (but may "backwards wrap" if cursor is at start of line).
+^I 9    HT   Tab           Moves the cursor right to next multiple of 8.
+^J 0x0A LF   Line Feed     Moves to next line, scrolls the display up if at bottom of the screen.
+                           not rely on this.
+^L 0x0C FF   Form Feed     Move a printer to top of next page. Usually does not move horizontally
+                           terminals varies.
+^M 0x0D CR   Carriage      Moves the cursor to column zero.
+             Return
+^[ 0x1B ESC  Escape        Starts all the escape sequences
+
+C1 control codes range 0x40 to 0x5F
+
+Code  C1  Abbr    Name     Effect
+ESC  0x8E SS2  Single      Select alternative character sets. SS2 selects the G2 character set, and SS3 selects the G3
+N              Shift Two   In an 7-bit environment, followed by one or more GL bytes (0x20–0x7F) specifying a character
+ESC  0x8F SS3  Single      In an 8-bit environment, these may instead be GR bytes (0xA0–0xFF)
+O              Shift Three
+ESC            Device      Terminated by ST
+P    0x90 DCS  Control     
+               String
+ESC            Control
+[    0x9B CSI  Sequence    Starts most of the useful sequences, terminated by a byte in the range 0x40 through 0x7E
+               Introducer
+ESC  0x9C ST   String      Terminates strings in other controls
+\              Terminator
+ESC            Operating
+]    0x9D OSC  System      Starts a control string for the operating system to use, terminated by ST
+               Command
+ESC  0x98 SOS  Start of
+X              String      Takes an argument of a string of text, terminated by ST
+ESC  0x9E PM   Privacy     rarely implemented
+^              Message     
+ESC            Application Kermit commands APC sequences
+_    0x9F APC  Program
+               Command
+
+CSI (Control Sequence Introducer) sequences
+
+ESC [ followed by any number (including none) of parameters in the range 0x30–0x3F
+parameters as a series of semicolon-separated numbers such as 1;2;3, empty treated as 0
+then by any number of "intermediate bytes" in the range 0x20–0x2F
+finally by a single in the range 0x40–0x7E
+
+ Code   Abbr     Name     Effect
+CSI n A CUU  Cursor Up
+CSI n B CUD  Cursor Down
+CSI n C CUF  Cursor       Moves the cursor n (default 1) cells in the given direction
+             Forward
+CSI n D CUB  Cursor Back
+CSI n E CNL  Cursor Next  Moves cursor to beginning of the line n (default 1) lines down
+             Line
+             Cursor
+CSI n F CPL  Previous     Moves cursor to beginning of the line n (default 1) lines up
+             Line
+             Cursor
+CSI n G CHA  Horizontal   Moves the cursor to column n (default 1)
+             Absolute
+CSI n ; CUP  Cursor       Moves the cursor to row n, column m. 1-based, default to 1 (top left corner)
+ m H         Position     5H is a synonym for CSI 1;5H as well as CSI 17;H is the same as CSI 17H and CSI 17;1H
+             Erase in     Clears part of the screen. If n is 0 (or missing), clear from cursor to end of screen.
+CSI n J ED   Display      n 1 clear from cursor to beginning of screen, n 2 clear entire screen, n 3 clear entire screen
+                          delete all lines saved in the scrollback buffer
+CSI n K EL   Erase in     Erases part of the line, n 0 clear from cursor to the end of line
+             Line         n 1 clear from cursor to beginning of line, n 2 clear entire line, cursor position ino change
+CSI n S SU   Scroll Up    Scroll whole page up by n (default 1) lines. New lines are added at the bottom
+CSI n T SD   Scroll Down  Scroll whole page down by n (default 1) lines. New lines are added at the top
+CSI n ;      Horizontal   Same as CUP, counts as a format effector function (like CR or LF) rather than an editor
+m f     HVP  Vertical     function (like CUD or CNL). This can lead to different handling in certain terminal modes
+             Position
+             Select
+CSI n m SGR  Graphic      Sets colors and style of the characters following this code
+             Rendition
+CSI 5i       AUX Port On  Enable aux serial port usually for local serial printer
+CSI 4i       AUX Port Off Disable aux serial port usually for local serial printer
+                          
+             Device
+CSI 6n  DSR  Status       Reports the cursor position (CPR) by transmitting ESC[n;mR, n row m column
+             Report
+
+ Code    Abbr        Name      Effect
+        SCP,    Save Current   Saves the cursor position/state in SCO console mode
+CSI s   SCOSC   Cursor         
+                Position
+        RCP,    Restore Saved
+CSI u   SCORC   Cursor         Restores the cursor position/state in SCO console mode
+                Position
+CSI ?   DECTCEM                Shows the cursor, from the VT220.
+25 h
+CSI ?   DECTCEM                Hides the cursor.
+25 l
+CSI ?                          Enable alternative screen buffer, from xterm
+1049 h
+CSI ?                          Disable alternative screen buffer, from xterm
+1049 l
+CSI ?                          Turn on bracketed paste mode, text pasted into the terminal surrounded by ESC [200~ and
+ 2004 h                        ESC [201~; programs should not treat characters bracketed as commands
+CSI ?                          Turn off bracketed paste mode.
+2004 l
+
+SGR (Select Graphic Rendition)
+   n                     Name
+0       Reset or normal                         All attributes off
+1       Bold or increased intensity             As with faint, the color change is a PC (SCO / CGA) invention
+2       Faint, decreased intensity, or dim      May be implemented as a light font weight like bold
+3       Italic                                  Not widely supported. Sometimes treated as inverse or blink
+4       Underline                               Style extensions exist for Kitty, VTE, mintty and iTerm2
+5       Slow blink                              Sets blinking to less than 150 times per minute
+6       Rapid blink                             MS-DOS ANSI.SYS, 150+ per minute; not widely supported
+7       Reverse video or invert                 Swap foreground and background colors; inconsistent emulation
+8       Conceal or hide                         Not widely supported
+9       Crossed-out, or strike                  Characters legible but marked as if for deletion
+10      Primary (default) font
+11–19   Alternative font                        Select alternative font n − 10
+20      Fraktur (Gothic)                        Rarely supported
+21      Doubly underlined; or: not bold         Double-underline per ECMA-48  but instead disables bold intensity
+                                                including in the Linux kernel's console before version
+22      Normal intensity                        Neither bold nor faint; color changes where intensity
+23      Neither italic, nor blackletter
+24      Not underlined                          Neither singly nor doubly underlined
+25      Not blinking                            Turn blinking off
+26      Proportional spacing                    ITU T.61 and T.416, not known to be used on terminals
+27      Not reversed
+28      Reveal                                  Not concealed
+29      Not crossed out
+30–37   Set foreground color
+38      Set foreground color                    Next arguments are 5;n or 2;r;g;b
+39      Default foreground color                Implementation defined (according to standard)
+40–47   Set background color
+48      Set background color                    Next arguments are 5;n or 2;r;g;b
+49      Default background color                Implementation defined (according to standard)
+50      Disable proportional spacing            T.61 and T.416
+51      Framed                                  Implemented as "emoji variation selector" in mintty
+52      Encircled
+53      Overlined                               Not supported in Terminal.app
+54      Neither framed nor encircled
+55      Not overlined
+58      Set underline color                     Not in standard; implemented in Kitty... Next arguments 5;n or 2;r;g;b
+59      Default underline color                 Not in standard; implemented in Kitty, VTE, mintty, and iTerm2
+60      Ideogram underline or right side line
+61      Ideogram double underline, or double
+        line on the right side
+62      Ideogram overline or left side line     Rarely supported
+63      Ideogram double overline, or double
+        line on the left side
+64      Ideogram stress marking
+65      No ideogram attributes                  Reset the effects of all of 60–64
+73      Superscript
+74      Subscript                               Implemented only in mintty
+75      Neither superscript nor subscript
+90–97   Set bright foreground color             Not in standard; originally implemented by aixterm
+100–107 Set bright background color
+
+Colors 3-bit and 4-bit
+The original specification only had 8 colors, and just gave them names.
+The SGR parameters 30–37 selected the foreground color, while 40–47 selected the background.
+Quite a few terminals implemented "bold" (SGR code 1) as a brighter color rather than a different font
+thus providing 8 additional foreground colors. Usually not as background colors
+
+FG BG   Name      VGA        X11/xterm
+30 40  Black   0, 0, 0
+31 41  Red     170, 0, 0     205, 0, 0
+32 42  Green   0, 170, 0     0, 205, 0 
+33 43  Yellow  [h]           205, 205, 0
+34 44  Blue    0, 0, 170     [45]
+35 45  Magenta 170, 0, 170   205, 0, 205
+36 46  Cyan    0, 170, 170   0, 205, 205
+37 47  White   170, 170, 170 229, 229, 229
+90 100 Black   85, 85, 85    127, 127, 127
+91 101 Red     255, 85, 85   255, 0, 0
+       Bright
+92 102 Green   85, 255, 85   0, 255, 0
+       Bright
+93 103 Yellow  255, 255, 85  255, 255, 0
+       Bright
+94 104 Blue    85, 85, 255   [46]
+       Bright
+95 105 Magenta 255, 85, 255  255, 0, 255
+       Bright
+96 106 Cyan    85, 255, 255  0, 255, 255
+       Bright
+97 107 White   255, 255, 255
+
+8-bit 256-color lookup tables
+
+ESC[38;5;⟨n⟩m Select foreground color
+ESC[48;5;⟨n⟩m Select background color
+  0-  7:  standard colors (as in ESC [ 30–37 m)
+  8- 15:  high intensity colors (as in ESC [ 90–97 m)
+ 16-231:  6 × 6 × 6 cube (216 colors): 16 + 36 × r + 6 × g + b (0 ≤ r, g, b ≤ 5)
+232-255:  grayscale from black to white in 24 steps
+
+The ITU's T.416 Information technology - Open Document Architecture (ODA) and interchange format: Character content
+architectures^[47] uses ':' as separator characters instead:
+
+ESC[38:5:⟨n⟩m Select foreground color      where n is a number from the table below
+ESC[48:5:⟨n⟩m Select background color
+
+24-bit TrueColor
+
+ESC[ 38;2;⟨r⟩;⟨g⟩;⟨b⟩ m Select RGB foreground color
+ESC[ 48;2;⟨r⟩;⟨g⟩;⟨b⟩ m Select RGB background color
+
+
+OSC (Operating System Command) sequences
+The Linux console uses ESC ] P n rr gg bb to change the palette, which, if hard-coded into an application, may hang
+other terminals
+
+Fs Escape sequences 0x60—0x7E
+
+    Abbr       Name       Effect
+ESC RIS  Reset to Initial full reset of terminal
+c        State            
+
+Fp Escape sequences range 0x30—0x3F
+
+     Abbr       Name       Effect
+ESC  DECSC DEC Save Cursor Saves the cursor position, encoding shift state and formatting attributes
+7
+ESC  DECRC DEC Restore     Restores the cursor position
+8          Cursor          
+
+nF Escape sequences range 0x20—0x2F
+code-switching mechanisms ISO-2022-JP
+
+
+Box-drawing Unicode
+          0 1 2 3 4 5 6 7 8 9 A B C D E F
+U+250x    ─ ━ │ ┃ ┄ ┅ ┆ ┇ ┈ ┉ ┊ ┋ ┌ ┍ ┎ ┏
+U+251x    ┐ ┑ ┒ ┓ └ ┕ ┖ ┗ ┘ ┙ ┚ ┛ ├ ┝ ┞ ┟
+U+252x    ┠ ┡ ┢ ┣ ┤ ┥ ┦ ┧ ┨ ┩ ┪ ┫ ┬ ┭ ┮ ┯
+U+253x    ┰ ┱ ┲ ┳ ┴ ┵ ┶ ┷ ┸ ┹ ┺ ┻ ┼ ┽ ┾ ┿
+U+254x    ╀ ╁ ╂ ╃ ╄ ╅ ╆ ╇ ╈ ╉ ╊ ╋ ╌ ╍ ╎ ╏
+U+255x    ═ ║ ╒ ╓ ╔ ╕ ╖ ╗ ╘ ╙ ╚ ╛ ╜ ╝ ╞ ╟
+U+256x    ╠ ╡ ╢ ╣ ╤ ╥ ╦ ╧ ╨ ╩ ╪ ╫ ╬ ╭ ╮ ╯
+U+257x    ╰ ╱ ╲ ╳ ╴ ╵ ╶ ╷ ╸ ╹ ╺ ╻ ╼ ╽ ╾ ╿
+Notes
+
+Block Elements Unicode
+          0 1 2 3 4 5 6 7 8 9 A B C D E F
+U+258x    ▀ ▁ ▂ ▃ ▄ ▅ ▆ ▇ █ ▉ ▊ ▋ ▌ ▍ ▎ ▏
+U+259x    ▐ ░ ▒ ▓ ▔ ▕ ▖ ▗ ▘ ▙ ▚ ▛ ▜ ▝ ▞ ▟
+Notes
+
+Symbols for Legacy Computing Unicode
+               0 1 2 3 4 5 6 7 8 9 A B C D E F
+U+1FB0x        🬀 🬁 🬂 🬃 🬄 🬅 🬆 🬇 🬈 🬉 🬊 🬋 🬌 🬍 🬎 🬏
+U+1FB1x        🬐 🬑 🬒 🬓 🬔 🬕 🬖 🬗 🬘 🬙 🬚 🬛 🬜 🬝 🬞 🬟
+U+1FB2x        🬠 🬡 🬢 🬣 🬤 🬥 🬦 🬧 🬨 🬩 🬪 🬫 🬬 🬭 🬮 🬯
+U+1FB3x        🬰 🬱 🬲 🬳 🬴 🬵 🬶 🬷 🬸 🬹 🬺 🬻 🬼 🬽 🬾 🬿
+U+1FB4x        🭀 🭁 🭂 🭃 🭄 🭅 🭆 🭇 🭈 🭉 🭊 🭋 🭌 🭍 🭎 🭏
+U+1FB5x        🭐 🭑 🭒 🭓 🭔 🭕 🭖 🭗 🭘 🭙 🭚 🭛 🭜 🭝 🭞 🭟
+U+1FB6x        🭠 🭡 🭢 🭣 🭤 🭥 🭦 🭧 🭨 🭩 🭪 🭫 🭬 🭭 🭮 🭯
+U+1FB7x        🭰 🭱 🭲 🭳 🭴 🭵 🭶 🭷 🭸 🭹 🭺 🭻 🭼 🭽 🭾 🭿
+U+1FB8x        🮀 🮁 🮂 🮃 🮄 🮅 🮆 🮇 🮈 🮉 🮊 🮋 🮌 🮍 🮎 🮏
+U+1FB9x        🮐 🮑 🮒   🮔 🮕 🮖 🮗 🮘 🮙 🮚 🮛 🮜 🮝 🮞 🮟
+U+1FBAx        🮠 🮡 🮢 🮣 🮤 🮥 🮦 🮧 🮨 🮩 🮪 🮫 🮬 🮭 🮮 🮯
+U+1FBBx        🮰 🮱 🮲 🮳 🮴 🮵 🮶 🮷 🮸 🮹 🮺 🮻 🮼 🮽 🮾 🮿
+U+1FBCx        🯀 🯁 🯂 🯃 🯄 🯅 🯆 🯇 🯈 🯉 🯊
+U+1FBDx
+U+1FBEx
+U+1FBFx        🯰 🯱 🯲 🯳 🯴 🯵 🯶 🯷 🯸 🯹
+
+Symbols cp437
+  0 1 2 3 4 5 6 7 8 9 A B C D E F
+B       │ ┤ ╡ ╢ ╖ ╕ ╣ ║ ╗ ╝ ╜ ╛ ┐
+C └ ┴ ┬ ├ ─ ┼ ╞ ╟ ╚ ╔ ╩ ╦ ╠ ═ ╬ ╧
+D ╨ ╤ ╥ ╙ ╘ ╒ ╓ ╫ ╪ ┘ ┌
+
+Symbols cp850
+  0 1 2 3 4 5 6 7 8 9 A B C D E F
+B       │ ┤         ╣ ║ ╗ ╝     ┐
+C └ ┴ ┬ ├ ─ ┼     ╚ ╔ ╩ ╦ ╠ ═ ╬
+D                   ┘ ┌
+
+Unix, CP/M, BBS VT100 alternate character set
+  0 1 2 3 4 5 6 7 8 9 A B C D E F
+6                     ┘ ┐ ┌ └ ┼
+7   ─     ├ ┤ ┴ ┬ │
+
+A Bash script that displays all of the semigraphic characters:
+$ for i in 6a 6b 6c 6d 6e 71 74 75 76 77 78; do printf "0x$i \x$i \x1b(0\x$i\x1b(B\n"; done
+0x6a j ┘
+0x6b k ┐
+0x6c l ┌
+0x6d m └
+0x6e n ┼
+0x71 q ─
+0x74 t ├
+0x75 u ┤
+0x76 v ┴
+0x77 w ┬
+0x78 x │
+
+BBC Master and later Acorn
+  0 1 2 3 4 5 6 7 8 9 A B C D E F
+A   ╷ ╶ ┌ ╴ ┐ ─ ┬ ╵ │ └ ├ ┘ ┤ ┴ ┼
+B ╭ ╮ ╰ ╯
+
+Amstrad CPC
+  0 1 2 3 4 5 6 7 8 9 A B C D E F
+8   ▘ ▝ ▀ ▖ ▍ ▞ ▛ ▗ ▚ ▐ ▜ ▃ ▙ ▟ ▉
+9   ╵ ╶ └ ╷ │ ┌ ├ ╴ ┘ ─ ┴ ┐ ┤ ┬ ┼
+
+CP/M Plus
+^[6]  0 1 2 3 4 5 6 7 8 9 A B C D E F
+  8     ╧ ╟ ╚ ╤ ║ ╔ ╠ ╢ ╝ ═ ╩ ╗ ╣ ╦ ╬
+  9     ╵ ╶ └ ╷ │ ┌ ├ ╴ ┘ ─ ┴ ┐ ┤ ┬ ┼
+

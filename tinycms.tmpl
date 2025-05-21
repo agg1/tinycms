@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang='C'>
+<head>
+<meta charset=UTF-8>
+<!-- meta name=viewport content='width=device-width, initial-scale=1' -->
+<meta name=viewport content-width=800>
+<link rel=stylesheet href=/styles/style.css>
+<meta name=description content='Low-noise tech zone for development of a complete CC=tcc single-pass C compiler driven operating system.'>
+#!
+TINYCMS_NAVITEM=${1}
+case "$TINYCMS_NAVITEM" in
+index)
+#!
+<title>tinyfront</title>
+#!
+;;
+docs)
+#!
+<title>Documentation</title>
+#!
+;;
+download)
+#!
+<title>Download</title>
+#!
+;;
+src)
+#!
+<title>Sources</title>
+#!
+;;
+projects)
+#!
+<title>Projects</title>
+#!
+;;
+people)
+#!
+<title>People</title>
+#!
+;;
+contact)
+#!
+<title>Contact</title>
+#!
+;;
+blog)
+#!
+<title>Blog</title>
+#!
+;;
+rss)
+#!
+<title>Feeds</title>
+#!
+;;
+esac
+#!
+</head>
+
+<body>
+<div id='navbar'>
+        <!-- a href='index.html' class=navimg><img id=navimg src='/files/logo.png'></a -->
+	<a href='index.html'>tinyfront.org</a>
+	<a href='docs.html'>documentation</a>
+	<a href='download.html'>download</a>
+	<a href='src.html'>sources</a>
+	<a href='projects.html'>projects</a>
+	<a href='people.html'>people</a>
+	<a href='contact.html'>contact</a>
+	<a href='blog.html'>blog</a>
+	<a href='rss.html'>feeds</a>
+</div>
+<div id=cmdline>${TINYCMS_NAVITEM}.html</div>
+#!
+echo "$(/bin/sh ${TINYCMS_SRCDIR}/tinycontent.sh ${TINYCMS_CONTENTDIR} ${TINYCMS_NAVITEM} 2>&1 || echo 'Internal error: 404 not found.')"
+##uncommented
+#cat ${TINYCMS_SRCDIR}/contents.htm
+#!
+<pre class=text-center style='margin:10px 0px 0px 0px;'>
+Published by aggi
+Copyright &copy; 2025 Michael Ackermann
+All rights reserved.
+</pre><br />
+<!-- please consider a donation -->
+</body>
+</html>
+

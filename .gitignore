@@ -1,0 +1,7 @@
+*.crt
+*.csr
+*.key
+*.pem
+downloads/pubkey.txt
+files/myself.jpg
+websrv/lighttpd.conf.orig

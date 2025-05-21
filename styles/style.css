@@ -1,0 +1,241 @@
+:root {
+	--foreground: peru;
+	--advice: peru;
+	--highlight: #fff;
+	--link: #ddd;
+	--advcolor: #111;
+	--hover: orange;
+}
+
+@media (min-width: 49em) {
+	/*.row {
+		display: flex;
+		flex-wrap: nowrap;
+		flex-direction: row-reverse;
+	}*/
+ 	.col { flex-grow: 1; }
+	.colleft { flex: 3 0 0px; }
+	.colright { flex: 2 0 0px; }
+}
+
+/*div.grid {
+	border-collapse: collapse;
+	margin: 10px 0px 0px 0px;
+}*/
+div.col {
+	margin: 10px 0px 10px 0px;
+	border: 4px double var(--foreground);
+	border-radius: 0.25em;
+	padding: 1em;
+	overflow: auto; /* if an floating image is placed within prevent overflow */
+}
+div.colleft {
+	margin: 10px 0px 0px 0px;
+	border: 6px double var(--foreground);
+	padding: 1em;
+}
+div.colright {
+	margin: 10px 0px 0px 0px;
+	border: 6px double var(--foreground);
+	padding: 1em;
+}
+div.col ul,li,p,h1,h2,h3,h4,h5,h6 {
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+}
+ul.toc {
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+}
+li.toc {
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+}
+
+div.col ul {
+	margin: 0px 0px 10px 0px;
+}
+div.col a {
+	font-weight: normal;
+}
+
+h1 { font-size: 200% }
+h2 { font-size: 180% }
+h3 { font-size: 160% }
+h4 { font-size: 140% }
+h5 { font-size: 120% }
+h6 { font-size: 100% }
+
+body {
+	font-size: 14pt;
+	/*margin: 0px;*/
+	margin: auto; /* centers body */
+	padding: 1em;
+	max-width: 64em;
+	font-family: monospace;
+	color: var(--foreground);
+	background: var(--advcolor);
+	word-wrap: break-word;
+}
+a {
+	text-decoration: none;
+	color: var(--link);
+	font-weight: bold;
+	/*padding-right: 0.25em;*/
+}
+a:hover {color: var(--highlight);}
+a.navimg {
+	text-decoration: none;
+	color: var(--link);
+	font-weight: bold;
+	/*padding-right: 0.25em;*/
+}
+a.navimg:hover {color: var(--highlight);}
+hr { border-color: var(--foreground); }
+
+pre {
+	white-space: pre-wrap;
+	margin: 0px;
+}
+p {
+	white-space: pre-wrap;
+	margin: 0px;
+}
+p + p {
+	margin: 10px 0px 0px 0px;
+}
+p + h1,h2,h3,h4,h5,h6 {
+	margin: 10px 0px 0px 0px;
+}
+
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+.heading {
+	background: var(--advice);
+	color: var(--advcolor);
+	font-weight: bold;
+	padding: 1em;
+	border-radius: 0.25em;
+	margin: 10px 0px 0px 0px;
+}
+
+#navbar {
+	overflow: hidden;
+	background-color: var(--foreground);
+	color: var(--advcolor);
+	z-index: 99;
+	position: relative;
+	top: 0;
+	left: 0;
+	width: 100%;
+	border-radius: 0.25em;
+}
+#navbar a:hover {
+	background-color: var(--hover);
+}
+#navbar input:hover {
+	background-color: var(--hover);
+}
+#navbar a {
+	float: left;
+	display: block;
+	color: var(--advcolor);
+	text-align: center;
+	padding: 14px;
+	text-decoration: none;
+	text-transform: uppercase;
+}
+#navbar a.navimg {
+	float: left;
+	display: block;
+	color: black;
+	text-align: center;
+	padding: 5px;
+	text-decoration: none;
+}
+#navbar input {
+	float: right;
+	display: block;
+	color: black;
+	text-align: center;
+	padding: 14px;
+	text-decoration: none;
+	background-color: var(--foreground);
+	border: 0px;
+	font-family: monospace;
+	font-weight: bold;
+	/*font-size: 12pt;*/
+}
+#navimg {
+	float: left;
+	height: auto;
+	width: 36px;
+	padding: 0px;
+	margin-top: 0px;
+	margin-left: 10px;
+	margin-bottom: 0rem;
+}
+@media (max-width: 768px) {
+	#navbar a {
+		/*font-size: 12pt;*/
+		padding: 12px;
+	}
+	td { display: block; }
+}
+
+img, video {
+	height: auto;
+	max-width: 100%;
+	margin-top: 0rem;
+	margin-bottom: 0rem;
+}
+
+input[type=text],
+textarea {
+	background-color: #333;
+	color: darkorange;
+}
+
+#cmdline::before {
+	content: "> ";
+}
+/*#cmdline::after {
+	content: "█";
+	animation: flash 0.5s step-end infinite;
+}*/
+#cmdline {
+	margin: 10px 0px 0px 0px;
+
+	overflow: hidden;
+	white-space: nowrap;
+	animation: reveal 4s linear;
+	text-overflow: "█";
+
+	color: var(--link);
+	font-family: monospace;
+	text-transform: uppercase;
+}
+/* @media (prefers-reduced-motion: no-preference) { */
+@keyframes flash {
+	50% { opacity: 0; }
+}
+@keyframes reveal {
+	from { width: 2em; }
+	to { width: 100%; }
+}
+/*}*/
+@media (max-width: 64em) {
+	@keyframes reveal {
+	}
+	#cmdline {
+		white-space: normal;
+	}
+	#cmdline::after {
+		content: "█";
+		animation: flash 0.5s step-end infinite;
+	}
+}

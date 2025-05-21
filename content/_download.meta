@@ -1,0 +1,2 @@
+TINYCMS_CONTENT_HANDLER=tinycms_download_content
+TINYCMS_PRETEXT_ITEM="content/nospace.htm"

@@ -1,0 +1,4 @@
+TINYCMS_ITEM_TITLE="Source Repositories at codeberg.org"
+TINYCMS_ITEM_AUTHOR="aggi"
+# generate table of contents from markdown
+TINYCMS_ITEM_TOC=""

@@ -1,0 +1,4 @@
+TINYCMS_ITEM_TITLE="tinyfront.org/gitweb repositories"
+TINYCMS_ITEM_AUTHOR="aggi"
+# generate table of contents from markdown
+TINYCMS_ITEM_TOC=""
