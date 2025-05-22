@@ -37,7 +37,7 @@ tinycms_default_content() {
 		fi
 
 		# gather content item modification data if it was not available with <contentitem>.meta
-		if [ ! -z "${TINYCMS_ITEM_DATE}" ] ; then
+		if [ -z "${TINYCMS_ITEM_DATE}" ] ; then
 			TINYCMS_ITEM_MDATE="$(date -d"$(stat -c %y ${c})" +'%Y-%m-%d %H:%S UTC' 2>/dev/null)"
 		fi
 
