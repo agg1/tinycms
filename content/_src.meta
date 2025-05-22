@@ -1,3 +1,3 @@
 TINYCMS_CONTENT_HANDLER=tinycms_default_content
 TINYCMS_PRETEXT_ITEM="content/nospace.htm"
-TINYCMS_CONTENT_ITEMS="content/codeberg.md content/code-diverse.md content/github.md content/gitweb.md"
+TINYCMS_CONTENT_ITEMS="content/gitweb.md content/codeberg.md content/code-diverse.md content/github.txt"

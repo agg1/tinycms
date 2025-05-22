@@ -1,0 +1,5 @@
+https://codeberg.org/aggi/linux-tcc
+TOS musl-libc fork (not public)
+TOS portage-tree fork (not public)
+https://codeberg.org/aggi/tinycms
+https://codeberg.org/aggi/scram88
