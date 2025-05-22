@@ -83,7 +83,8 @@ tinycms_download_content() {
 }
 
 tinycms_blog_content() {
-	# traverse directory structure blog/<year>/<month>
+	# no specific blog_content handler exists yet to navigate by <year>/<month>
+	tinycms_default_content
 }
 
 tinycms_rss_content() {
