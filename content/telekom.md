@@ -31,7 +31,7 @@ It was almost a decade of time required to recover from this never ending and ev
 A [proposal for a dimploma-thesis](projects.html) of **mine** is published in the projects section.
 
 Although i would feel barely confident again to discuss some topics worthy a masters degree held by any international telco manager:
-1. Total railway signaling grid outage in Germany year 2023 since when Telekom decided to [outsource and abandon X.25 support](https://de.wikipedia.org/wiki/Datex-P#Das_Ende_von_Datex-P) entirely meanwhile this protocol was in use with cricical infrastructure signaling grid of railway and power plant operators
-2. Total electricity grid outage in Europe/Spain year 2025, and whichever interdependency this might have had with critical infrastructure signaling grid and network management
+1. [Total railway signaling grid outage in Germany october 2022](https://de.wikipedia.org/wiki/Anschlag_auf_die_Deutsche_Bahn_am_8._Oktober_2022) since when Telekom decided to [outsource and abandon X.25 support](https://de.wikipedia.org/wiki/Datex-P#Das_Ende_von_Datex-P) entirely meanwhile this protocol was in use with cricical infrastructure signaling grid of railway and power plant operators
+2. [Total electricity grid outage in Europe/Spain May 2025](https://de.wikipedia.org/wiki/Stromausfall_auf_der_Iberischen_Halbinsel_2025), and whichever interdependency this might have had with critical infrastructure signaling grid and network management
 
 Such is better left to those receiving 6figure salaries in management positions since their academic carreer was attributed with glory by EU.
