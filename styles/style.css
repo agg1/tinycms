@@ -120,7 +120,7 @@ p + h1,h2,h3,h4,h5,h6 {
 	background: var(--advice);
 	color: var(--advcolor);
 	font-weight: bold;
-	padding: 1em;
+	padding: 0.5em;
 	border-radius: 0.25em;
 	margin: 10px 0px 0px 0px;
 }
@@ -147,7 +147,7 @@ p + h1,h2,h3,h4,h5,h6 {
 	display: block;
 	color: var(--advcolor);
 	text-align: center;
-	padding: 14px;
+	padding: 0.5em;
 	text-decoration: none;
 	text-transform: uppercase;
 }
