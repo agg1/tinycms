@@ -1,0 +1,358 @@
+diff -Naur dropbear-2020.81.orig/Makefile.in dropbear-2020.81/Makefile.in
+--- dropbear-2020.81.orig/Makefile.in	2020-10-29 13:35:50.000000000 -0000
++++ dropbear-2020.81/Makefile.in	2024-11-25 23:02:01.497392498 -0000
+@@ -9,7 +9,7 @@
+ # dbclient functionality, and includes the progress-bar functionality in scp.
+ 
+ ifndef PROGRAMS
+-	PROGRAMS=dropbear dbclient dropbearkey dropbearconvert
++	PROGRAMS=dropbear dbclient dropbearkey dropbearconvert scp
+ endif
+ 
+ STATIC_LTC=libtomcrypt/libtomcrypt.a
+diff -Naur dropbear-2020.81.orig/common-algo.c dropbear-2020.81/common-algo.c
+--- dropbear-2020.81.orig/common-algo.c	2024-11-25 22:54:10.247384732 -0000
++++ dropbear-2020.81/common-algo.c	2024-11-25 23:02:01.497392498 -0000
+@@ -56,6 +56,9 @@
+ 
+ /* Remember to add new ciphers/hashes to regciphers/reghashes too */
+ 
++static const struct dropbear_cipher dropbear_scrash = 
++	{&scrash_desc, 16, 16};
++
+ #if DROPBEAR_AES256
+ static const struct dropbear_cipher dropbear_aes256 = 
+ 	{&aes_desc, 32, 16};
+@@ -136,6 +139,8 @@
+  * that is also supported by the server will get used. */
+ 
+ algo_type sshciphers[] = {
++	{"scrash-ecb", 0, &dropbear_scrash, 1, &dropbear_mode_none},
++
+ #if DROPBEAR_ENABLE_CBC_MODE
+ #if DROPBEAR_TWOFISH128
+ 	{"twofish128-cbc", 0, &dropbear_twofish128, 1, &dropbear_mode_cbc},
+diff -Naur dropbear-2020.81.orig/crypto_desc.c dropbear-2020.81/crypto_desc.c
+--- dropbear-2020.81.orig/crypto_desc.c	2020-10-29 13:35:50.000000000 -0000
++++ dropbear-2020.81/crypto_desc.c	2024-11-25 23:02:01.497392498 -0000
+@@ -21,6 +21,7 @@
+ void crypto_init() {
+ 
+ 	const struct ltc_cipher_descriptor *regciphers[] = {
++		&scrash_desc,
+ #if DROPBEAR_AES
+ 		&aes_desc,
+ #endif
+diff -Naur dropbear-2020.81.orig/default_options.h dropbear-2020.81/default_options.h
+--- dropbear-2020.81.orig/default_options.h	2024-11-25 22:54:10.247384732 -0000
++++ dropbear-2020.81/default_options.h	2024-11-25 23:03:45.887394219 -0000
+@@ -83,9 +83,9 @@
+  * Including both AES keysize variants (128 and 256) will result in 
+  * a minimal size increase */
+ #define DROPBEAR_AES128 1
+-#define DROPBEAR_AES256 0
+-#define DROPBEAR_3DES 0
+-#define DROPBEAR_TWOFISH256 0
++#define DROPBEAR_AES256 1
++#define DROPBEAR_3DES 1
++#define DROPBEAR_TWOFISH256 1
+ #define DROPBEAR_TWOFISH128 1
+ 
+ /* Enable Chacha20-Poly1305 authenticated encryption mode. This is
+@@ -106,7 +106,7 @@
+  * for security and forwards compatibility, but slower than CTR on
+  * CPU w/o dedicated AES/GHASH instructions.
+  * Compiling in will add ~6kB to binary size on x86-64 */
+-#define DROPBEAR_ENABLE_GCM_MODE 0
++#define DROPBEAR_ENABLE_GCM_MODE 0
+ 
+ /* Message integrity. sha2-256 is recommended as a default, 
+    sha1 for compatibility */
+@@ -167,7 +167,7 @@
+ #define DROPBEAR_DH_GROUP14_SHA1 1
+ #define DROPBEAR_DH_GROUP14_SHA256 1
+ #define DROPBEAR_DH_GROUP16 0
+-#define DROPBEAR_CURVE25519 0
++#define DROPBEAR_CURVE25519 1
+ #define DROPBEAR_ECDH 0
+ #define DROPBEAR_DH_GROUP1 1
+ 
+diff -Naur dropbear-2020.81.orig/libtomcrypt/Makefile.in dropbear-2020.81/libtomcrypt/Makefile.in
+--- dropbear-2020.81.orig/libtomcrypt/Makefile.in	2020-10-29 13:35:50.000000000 -0000
++++ dropbear-2020.81/libtomcrypt/Makefile.in	2024-11-25 23:02:01.497392498 -0000
+@@ -55,6 +55,7 @@
+ src/ciphers/kseed.o src/ciphers/multi2.o src/ciphers/noekeon.o src/ciphers/rc2.o src/ciphers/rc5.o \
+ src/ciphers/rc6.o src/ciphers/safer/safer.o src/ciphers/safer/saferp.o src/ciphers/skipjack.o \
+ src/ciphers/twofish/twofish.o src/ciphers/xtea.o src/encauth/ccm/ccm_add_aad.o \
++src/ciphers/scrash.o \
+ src/encauth/ccm/ccm_add_nonce.o src/encauth/ccm/ccm_done.o src/encauth/ccm/ccm_init.o \
+ src/encauth/ccm/ccm_memory.o src/encauth/ccm/ccm_process.o src/encauth/ccm/ccm_reset.o \
+ src/encauth/ccm/ccm_test.o src/encauth/chachapoly/chacha20poly1305_add_aad.o \
+diff -Naur dropbear-2020.81.orig/libtomcrypt/src/ciphers/scrash.c dropbear-2020.81/libtomcrypt/src/ciphers/scrash.c
+--- dropbear-2020.81.orig/libtomcrypt/src/ciphers/scrash.c	1970-01-01 00:00:00.000000000 -0000
++++ dropbear-2020.81/libtomcrypt/src/ciphers/scrash.c	2024-11-25 23:02:01.497392498 -0000
+@@ -0,0 +1,224 @@
++/* LibTomCrypt, modular cryptographic library -- Tom St Denis
++ *
++ * LibTomCrypt is a library that provides various cryptographic
++ * algorithms in a highly modular and flexible manner.
++ *
++ * The library is free for all purposes without any express
++ * guarantee it works.
++ */
++/**
++  @file scrash.c
++*/
++#include "../headers/tomcrypt.h"
++#include <stdint.h>
++
++#define SCRASH_LFSRSIZE		4
++#define SCRASH_MODUL		7
++#define SCRASH_DIST1		2
++#define SCRASH_DIST2		5
++#define SCRASH_DIST3		8
++#define SCRASH_SEED			0x70615243u // prevent rainbow table attack against 256bit keyspace
++#define SCRASH_SECTORSIZE	128	// 512 with loopdev-scrash
++#define SCRASH_KEYSIZE		32	//
++
++//#ifdef LTC_BLOWFISH
++
++const struct ltc_cipher_descriptor scrash_desc =
++{
++    "scrash",		// name
++    38,				// internal id
++    SCRASH_LFSRSIZE, SCRASH_KEYSIZE, SCRASH_SECTORSIZE, 1,	// min_key, max_key, blocksize, rounds
++    &scrash_setup,
++    &scrash_ecb_encrypt,
++    &scrash_ecb_decrypt,
++    &scrash_test,
++    &scrash_done,
++    &scrash_keysize,
++    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL // accelerated functions NULL
++};
++
++ /**
++    Initialize the cipher
++    @param key The symmetric key you wish to pass
++    @param keylen The key length in bytes
++    @param num_rounds The number of rounds desired (0 for default)
++    @param skey The key in as scheduled by this function.
++    @return CRYPT_OK if successful
++ */
++int scrash_setup(const unsigned char *key, int keylen, int num_rounds,
++                   symmetric_key *skey)
++{
++   int n;
++   unsigned *ecb_key = skey->scrash.ecb_key;
++
++   if (keylen < 4 ) {
++      return CRYPT_INVALID_KEYSIZE;
++   }
++
++   for (n = 0; n < keylen; n++) {
++      ecb_key[n%32] = key[n];
++   }
++
++   return CRYPT_OK;
++}
++
++/**
++  Encrypts a block of text
++  @param pt The input plaintext
++  @param ct The output ciphertext
++  @param skey The key as scheduled
++  @return CRYPT_OK if successful
++*/
++#ifdef LTC_CLEAN_STACK
++static int _scrash_ecb_encrypt(const unsigned char *in, unsigned char *out, symmetric_key *skey)
++#else
++int scrash_ecb_encrypt(const unsigned char *in, unsigned char *out, symmetric_key *skey)
++#endif
++{
++   LTC_ARGCHK(skey != NULL);
++   LTC_ARGCHK(in   != NULL);
++   LTC_ARGCHK(out  != NULL);
++
++	char *key = skey->scrash.ecb_key;
++	int n, chunks, c;
++	uint32_t cur_scr;
++	uint8_t s1, s2, s3, salt;
++
++	if (SCRASH_SECTORSIZE%SCRASH_LFSRSIZE > 0)
++		return CRYPT_INVALID_ARG;
++
++	chunks = SCRASH_SECTORSIZE/SCRASH_LFSRSIZE;
++	for (n=0;n<chunks;n++) {
++		c = n*SCRASH_LFSRSIZE;
++		if (c%SCRASH_SECTORSIZE == 0) {
++			cur_scr = SCRASH_SEED;
++			salt = key[n%SCRASH_KEYSIZE]; salt ^= key[salt%SCRASH_KEYSIZE];
++			s1 = (salt%SCRASH_MODUL)+SCRASH_DIST1;
++			s2 = (salt%SCRASH_MODUL)+SCRASH_DIST2;
++			s3 = (salt%SCRASH_MODUL)+SCRASH_DIST3;
++		}
++		else {
++			s1 = (uint8_t)((cur_scr%SCRASH_MODUL)+SCRASH_DIST1);
++			s2 = (uint8_t)((cur_scr%SCRASH_MODUL)+SCRASH_DIST2);
++			s3 = (uint8_t)((cur_scr%SCRASH_MODUL)+SCRASH_DIST3);
++		}
++		cur_scr ^= ((((uint32_t)(key[c%SCRASH_KEYSIZE]))<<0)		&0x000000FFu);
++		cur_scr ^= ((((uint32_t)(key[(c+s1)%SCRASH_KEYSIZE]))<<8)	&0x0000FF00u);
++		cur_scr ^= ((((uint32_t)(key[(c+s2)%SCRASH_KEYSIZE]))<<16)	&0x00FF0000u);
++		cur_scr ^= ((((uint32_t)(key[(c+s3)%SCRASH_KEYSIZE]))<<24)	&0xFF000000u);
++		cur_scr ^= cur_scr>>s1; cur_scr ^= cur_scr<<s2; cur_scr ^= cur_scr>>s3;
++		*out++ = *in++ ^ ((uint8_t)((cur_scr&0x000000FFu)>>0));
++		*out++ = *in++ ^ ((uint8_t)((cur_scr&0x0000FF00u)>>8));
++		*out++ = *in++ ^ ((uint8_t)((cur_scr&0x00FF0000u)>>16));
++		*out++ = *in++ ^ ((uint8_t)((cur_scr&0xFF000000u)>>24));
++	}
++
++   return CRYPT_OK;
++}
++
++#ifdef LTC_CLEAN_STACK
++int scrash_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
++{
++    int err = _scrash_ecb_encrypt(pt, ct, skey);
++    return err;
++}
++#endif
++
++/**
++  Decrypts a block of text
++  @param ct The input ciphertext
++  @param pt The output plaintext
++  @param skey The key as scheduled
++  @return CRYPT_OK if successful
++*/
++#ifdef LTC_CLEAN_STACK
++static int _scrash_ecb_decrypt(const unsigned char *in, unsigned char *out, symmetric_key *skey)
++#else
++int scrash_ecb_decrypt(const unsigned char *in, unsigned char *out, symmetric_key *skey)
++#endif
++{
++   LTC_ARGCHK(skey != NULL);
++   LTC_ARGCHK(in   != NULL);
++   LTC_ARGCHK(out  != NULL);
++
++	char *key = skey->scrash.ecb_key;
++	int n, chunks, c;
++	uint32_t cur_scr;
++	uint8_t s1, s2, s3, salt;
++
++	if (SCRASH_SECTORSIZE%SCRASH_LFSRSIZE > 0)
++		return CRYPT_INVALID_ARG;
++
++	chunks = SCRASH_SECTORSIZE/SCRASH_LFSRSIZE;
++	for (n=0;n<chunks;n++) {
++		c = n*SCRASH_LFSRSIZE;
++		if (c%SCRASH_SECTORSIZE == 0) {
++			cur_scr = SCRASH_SEED;
++			salt = key[n%SCRASH_KEYSIZE]; salt ^= key[salt%SCRASH_KEYSIZE];
++			s1 = (salt%SCRASH_MODUL)+SCRASH_DIST1;
++			s2 = (salt%SCRASH_MODUL)+SCRASH_DIST2;
++			s3 = (salt%SCRASH_MODUL)+SCRASH_DIST3;
++		}
++		else {
++			s1 = (uint8_t)((cur_scr%SCRASH_MODUL)+SCRASH_DIST1);
++			s2 = (uint8_t)((cur_scr%SCRASH_MODUL)+SCRASH_DIST2);
++			s3 = (uint8_t)((cur_scr%SCRASH_MODUL)+SCRASH_DIST3);
++		}
++		cur_scr ^= ((((uint32_t)(key[c%SCRASH_KEYSIZE]))<<0)		&0x000000FFu);
++		cur_scr ^= ((((uint32_t)(key[(c+s1)%SCRASH_KEYSIZE]))<<8)	&0x0000FF00u);
++		cur_scr ^= ((((uint32_t)(key[(c+s2)%SCRASH_KEYSIZE]))<<16)	&0x00FF0000u);
++		cur_scr ^= ((((uint32_t)(key[(c+s3)%SCRASH_KEYSIZE]))<<24)	&0xFF000000u);
++		cur_scr ^= cur_scr>>s1; cur_scr ^= cur_scr<<s2; cur_scr ^= cur_scr>>s3;
++		*out++ = *in++ ^ ((uint8_t)((cur_scr&0x000000FFu)>>0));
++		*out++ = *in++ ^ ((uint8_t)((cur_scr&0x0000FF00u)>>8));
++		*out++ = *in++ ^ ((uint8_t)((cur_scr&0x00FF0000u)>>16));
++		*out++ = *in++ ^ ((uint8_t)((cur_scr&0xFF000000u)>>24));
++	}
++
++   return CRYPT_OK;
++}
++
++#ifdef LTC_CLEAN_STACK
++int scrash_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
++{
++    int err = _scrash_ecb_decrypt(ct, pt, skey);
++    return err;
++}
++#endif
++
++
++/**
++  Performs a self-test of the cipher
++  @return CRYPT_OK if functional, CRYPT_NOP if self-test has been disabled
++*/
++int scrash_test(void)
++{
++   return CRYPT_OK;
++}
++
++/** Terminate the context
++   @param skey    The scheduled key
++*/
++void scrash_done(symmetric_key *skey)
++{
++  LTC_UNUSED_PARAM(skey);
++}
++
++/**
++  Gets suitable key size
++  @param keysize [in/out] The length of the recommended key (in bytes).  This function will store the suitable size back in this variable.
++  @return CRYPT_OK if the input key size is acceptable.
++*/
++int scrash_keysize(int *keysize)
++{
++   LTC_ARGCHK(keysize != NULL);
++
++   if (*keysize < 4) {
++      return CRYPT_INVALID_KEYSIZE;
++   } else if (*keysize > 32) {
++      *keysize = 32;
++   }
++   return CRYPT_OK;
++}
++
++//#endif
+diff -Naur dropbear-2020.81.orig/libtomcrypt/src/headers/tomcrypt_cipher.h dropbear-2020.81/libtomcrypt/src/headers/tomcrypt_cipher.h
+--- dropbear-2020.81.orig/libtomcrypt/src/headers/tomcrypt_cipher.h	2020-10-29 13:35:50.000000000 -0000
++++ dropbear-2020.81/libtomcrypt/src/headers/tomcrypt_cipher.h	2024-11-25 23:02:01.497392498 -0000
+@@ -12,6 +12,11 @@
+  * We put each of the ciphers scheduled keys in their own structs then we put all of
+  * the key formats in one union.  This makes the function prototypes easier to use.
+  */
++
++// #ifdef LTC_SCRASH
++struct scrash_key { unsigned ecb_key[32]; };
++// #endif
++
+ #ifdef LTC_BLOWFISH
+ struct blowfish_key {
+    ulong32 S[4][256];
+@@ -155,6 +160,7 @@
+ #endif
+ 
+ typedef union Symmetric_key {
++   struct scrash_key scrash;
+ #ifdef LTC_DES
+    struct des_key des;
+    struct des3_key des3;
+@@ -594,6 +600,16 @@
+          symmetric_key *skey2);
+ } cipher_descriptor[];
+ 
++// #ifdef LTC_SCRASH
++int scrash_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey);
++int scrash_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey);
++int scrash_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey);
++int scrash_test(void);
++void scrash_done(symmetric_key *skey);
++int scrash_keysize(int *keysize);
++extern const struct ltc_cipher_descriptor scrash_desc;
++// #endif
++
+ #ifdef LTC_BLOWFISH
+ int blowfish_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey);
+ int blowfish_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey);
