@@ -45,6 +45,7 @@ echo "Generating ${TINYCMS_OUTDIR}/sitemap.xml"
 cd "${TINYCMS_OUTDIR}"
 pp "${TINYCMS_SITEMAP_TEMPLATE}" "${TINYCMS_SITEURL}" > "${TINYCMS_OUTDIR}"/sitemap.xml
 cd "${TINYCMS_SRCDIR}"
+cp -p "${TINYCMS_SRCDIR}"/robots.txt "${TINYCMS_OUTDIR}" || true
 
 ### deploy
 # variant1
