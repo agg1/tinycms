@@ -93,6 +93,7 @@ chmod -R ugo-w "${TINYCMS_OUTDIR}"
 chown -R lighttpd:lighttpd "${WEBSRV_ROOT}"
 chmod -R ugo-rwx "${WEBSRV_ROOT}"/www-cache "${WEBSRV_ROOT}"/log "${WEBSRV_ROOT}"/stat
 chmod -R u+rwX "${WEBSRV_ROOT}"/www-cache "${WEBSRV_ROOT}"/log "${WEBSRV_ROOT}"/stat
+chmod 550 "${WEBSRV_ROOT}"
 
 # lighttpd websrv configuration
 cp websrv/lighttpd.conf /etc/lighttpd/
