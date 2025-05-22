@@ -26,7 +26,7 @@ WEBSRV_ROOT="/tmp/www"
 TINYCMS_OUTDIR="${WEBSRV_ROOT}"/tinycms
 
 # each nav-item needs a ${TINYCMS_CONTENTDIR}/<navitem>.meta file
-TINYCMS_NAVITMS="index docs download src blog projects people contact rss"
+TINYCMS_NAVITEMS="index docs download src projects people contact blog rss"
 
 # cleanup
 [ ! -z "${WEBSRV_ROOT}" -a -e "${WEBSRV_ROOT}" ] && rm -rf "${WEBSRV_ROOT}"
@@ -36,7 +36,7 @@ mkdir -p "${TINYCMS_OUTDIR}"
 ### render htdocs output for deployment
 cd "${TINYCMS_SRCDIR}"
 #
-for n in ${TINYCMS_NAVITMS} ; do
+for n in ${TINYCMS_NAVITEMS} ; do
 	echo "Generating ${TINYCMS_OUTDIR}/${n}.html"
 	pp "${TINYCMS_TEMPLATE}" "${n}" "${TINYCMS_SITEURL}" > "${TINYCMS_OUTDIR}"/"${n}.html"
 done
