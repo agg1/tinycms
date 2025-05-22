@@ -28,6 +28,7 @@ tinycms_default_content() {
 	for c in ${TINYCMS_CONTENT_ITEMS} ; do
 		[ -e "${c}" ] || continue
 
+		TINYCMS_ITEM_DATE=""
 		TINYCMS_ITEM_TITLE=""
 		TINYCMS_ITEM_AUTHOR=""
 		# optional <contentitem>.meta
@@ -35,8 +36,10 @@ tinycms_default_content() {
 			. "${c}".meta
 		fi
 
-		# content item modification data
-		TINYCMS_ITEM_MDATE="$(date -d"$(stat -c %y ${c})" +'%Y-%m-%d %H:%S UTC' 2>/dev/null)"
+		# gather content item modification data if it was not available with <contentitem>.meta
+		if [ ! -z "${TINYCMS_ITEM_DATE}" ] ; then
+			TINYCMS_ITEM_MDATE="$(date -d"$(stat -c %y ${c})" +'%Y-%m-%d %H:%S UTC' 2>/dev/null)"
+		fi
 
 		# content item title/heading
 		[ ! -z "${TINYCMS_ITEM_TITLE}" ] && \
