@@ -2,7 +2,7 @@ Suffered from permanent pain with Java, JSP, JEE, Python, PHP, Perl, Web Framewo
 
 Written in 3 days it is ~200 lines of POSIX shell script for the content management components, a few templates, a stylesheet and few minimal dependencies required which are implemented in C for template processing with [pp utility from mkws.sh project](https://adi.onl/pp.html). Markdown format conversion is possible with [discount utility](http://www.pell.portland.or.us/~orc/Code/discount/) that is too written in C and nothing else. By this TinyCMS extends the concept of static site generation with [mkws.sh](https://mkws.sh) towards web content management by associating navigation entities with content entities and supporting a few content entity format conversions.
 
-Fast, simple, extensible to maintain an AoT rendered static site with a git-driven distributed workflow.
+Fast, simple, extensible to maintain AoT rendered static sites with a git-driven distributed workflow.
 Dynamic session content processing with CGI is optional and remains disabled for security reasons.
 
 TODO:
