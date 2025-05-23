@@ -1,7 +1,7 @@
 Suffered from permanent pain with Java, JSP, JEE, Python, PHP, Perl, 
 Web Frameworks and a thousand other things, the decision was made to re-
 write TinyCMS web content management system from scratch to maintain 
-tinfront.org website with.
+tinyfront.org website with.
 
 Written in 3 days it is ~200 lines of POSIX shell script for the 
 content management components, a few templates, a stylesheet and few 
