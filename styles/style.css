@@ -71,12 +71,19 @@ div.col a {
 	font-weight: normal;
 }
 
-h1 { font-size: 200% }
+/*h1 { font-size: 200% }
 h2 { font-size: 180% }
 h3 { font-size: 160% }
 h4 { font-size: 140% }
 h5 { font-size: 120% }
-h6 { font-size: 100% }
+h6 { font-size: 100% }*/
+h1,h2,h3,h4,h5,h6 {
+	margin: 10px 0px 10px 0px;
+	font-size:100%;
+	text-transform: uppercase;
+	font-weight: bold;
+	color: var(--link);
+}
 
 body {
 	font-size: 14pt;
@@ -118,6 +125,17 @@ p + p {
 }
 p + h1,h2,h3,h4,h5,h6 {
 	margin: 10px 0px 0px 0px;
+}
+
+table {
+	margin: 10px 0px 10px 0px;
+}
+th,tr,td {
+	padding: 10px;
+	border: 1px solid var(--foreground);
+	color: var(--foreground);
+	font-weight: normal;
+	text-align: left;
 }
 
 .text-center { text-align: center; }
