@@ -1,3 +1,3 @@
 TINYCMS_CONTENT_HANDLER=tinycms_default_content
 TINYCMS_PRETEXT_ITEM=""
-TINYCMS_CONTENT_ITEMS="content/tinycms.md content/scram.md content/tos-kernel.md content/tos-libc.md content/tos-portage.md"
+TINYCMS_CONTENT_ITEMS="content/tinycms.md content/scram.md"
