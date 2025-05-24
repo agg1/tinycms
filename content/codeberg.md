@@ -2,8 +2,8 @@ All repositories were migrated from github to [codeberg.org](https://codeberg.or
 
 Tinyfront Operating System (TOS) supported with TinyCC toolchain cross-compilation and static linking for a **complete** POSIX base system profile containing all required development utilities and sanitized from C++ to keep that fully optional:
 [TOS linux-2.4 kernel fork](https://codeberg.org/aggi/linux-tcc)
-[TOS musl-libc fork]() for portability towards linux-2.4 syscall ABI (not public)
-[TOS portage-tree fork]() with ~500 components (not public)
+[TOS musl-libc fork]() for portability towards linux-2.4 syscall ABI (unavailable tinyfront.org/gitweb)
+[TOS portage-tree fork]() with ~500 components (unavailable tinyfront.org/gitweb)
 
 [TinyCMS](https://codeberg.org/aggi/tinycms) web content management system built upon mkws.sh design
 
