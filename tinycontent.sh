@@ -38,7 +38,14 @@ tinycms_default_content() {
 
 		# gather content item modification date if it was not available with <contentitem>.meta
 		if [ -z "${TINYCMS_ITEM_DATE}" ] ; then
-			TINYCMS_ITEM_MDATE="$(date -d"$(stat -c %y ${c})" +'%Y-%m-%d %H:%S UTC' 2>/dev/null)"
+			TINYCMS_ITEM_DATE="$(date -d"$(stat -c %y ${c})" +'%Y-%m-%d %H:%S UTC' 2>/dev/null)"
+		else
+			TINYCMS_ITEM_DATE="${TINYCMS_ITEM_DATE}"
+		fi
+		if [ ! -z "${TINYCMS_ITEM_AUTHOR}" ] ; then
+			TINYCMS_ITEM_FOOTER="Updated: ${TINYCMS_ITEM_DATE} - ${TINYCMS_ITEM_AUTHOR}"
+		else
+			TINYCMS_ITEM_FOOTER="Updated: ${TINYCMS_ITEM_DATE}"
 		fi
 
 		# content item title/heading
@@ -51,9 +58,9 @@ tinycms_default_content() {
 		*.md)
 			# markdown items with optional table of contents
 			if [ -z "${TINYCMS_ITEM_TOC}" ] ;then
-				markdown -f+html ${c}
+				markdown -f+tables,+html ${c}
 			else
-				markdown -T -f+toc,+html ${c}
+				markdown -T -f+toc,+tables,+html ${c}
 			fi
 		;;
 		*.htm*)
@@ -69,7 +76,7 @@ tinycms_default_content() {
 		;;
 		esac
 		echo '</div>'
-		echo "<div class=text-right>${TINYCMS_ITEM_MDATE}</div>"
+		echo "<div class=text-right>${TINYCMS_ITEM_FOOTER}</div>"
 	done
 }
 
