@@ -26,7 +26,7 @@ WEBSRV_ROOT="/tmp/www"
 TINYCMS_OUTDIR="${WEBSRV_ROOT}"/tinycms
 
 # each nav-item needs a ${TINYCMS_CONTENTDIR}/<navitem>.meta file
-TINYCMS_NAVITEMS="index docs download src projects people contact blog rss"
+TINYCMS_NAVITEMS="index docs download src projects blog contact"
 
 # cleanup
 [ ! -z "${WEBSRV_ROOT}" -a -e "${WEBSRV_ROOT}" ] && rm -rf "${WEBSRV_ROOT}"
