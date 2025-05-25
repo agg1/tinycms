@@ -18,9 +18,7 @@ git-driven distributed workflow. Dynamic session content processing
 with CGI on the TinyCMS server host is optional and can remain 
 completely disabled for security reasons. Instead TinyCMS integrates 
 nicely with codeberg or github:
-
 - to navigate and edit any content directly inside revision control 
-  system for example tinycms.md
 - and too RSS-feeds are exposed for content items to track updates
 
 A testing site is deployed at http://tinyfront.mooo.com
