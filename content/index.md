@@ -1,4 +1,4 @@
-**Welcome to the low-noise tech zone for development of TinyFront Operating System (TOS)!**
+**Welcome to the low-noise tech zone for development of Tinyfront Operating System (TOS)!**
 
 > "One of my most productive days was throwing away 1000 lines of code." - Ken Thompson
 
