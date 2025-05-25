@@ -5,8 +5,4 @@ Written in 3 days it is ~200 lines of POSIX shell script for the content managem
 Fast, simple, extensible to maintain AoT rendered static sites with a git-driven distributed workflow.
 Dynamic session content processing with CGI is optional and remains disabled for security reasons.
 
-TODO:
-- RSS feeds
-- Full-Text-Search
-
 Please see [https://codeberg.org/aggi/tinycms](https://codeberg.org/aggi/tinycms) for further details and feel free to drop a note by navigating [contact](contact.html) section.
