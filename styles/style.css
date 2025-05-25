@@ -59,11 +59,10 @@
 #navimg {
 	float: left;
 	height: auto;
-	width: 36px;
+	width: 32px;
 	padding: 0px;
-	margin-top: 0px;
-	margin-left: 10px;
-	margin-bottom: 0rem;
+	margin: 2px 0px 0px 2px;
+	/* margin-top: 0px; margin-left: 10px; margin-bottom: 0rem; */
 }
 a.navimg {
 	text-decoration: none;
@@ -273,3 +272,7 @@ textarea {
 
 .text-center { text-align: center; }
 .text-right { text-align: right; }
+
+strong em {
+	color: red;
+}
