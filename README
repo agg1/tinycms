@@ -13,13 +13,15 @@ generation with mkws.sh towards web content management by associating
 navigation entities with content entities and supporting a few content 
 entity format conversions.
 
-Fast, simple, extensible to maintain an AoT rendered static site with a 
+Fast, simple, extensible to maintain AoT rendered static sites with a 
 git-driven distributed workflow. Dynamic session content processing 
-with CGI is optional and remains disabled for security reasons.
+with CGI on the TinyCMS server host is optional and can remain 
+completely disabled for security reasons. Instead TinyCMS integrates 
+nicely with codeberg or github:
 
-TODO:
-- RSS feeds
-- Full-Text-Search
+- to navigate and edit any content directly inside revision control 
+  system for example tinycms.md
+- and too RSS-feeds are exposed for content items to track updates
 
 A testing site is deployed at http://tinyfront.mooo.com
 
