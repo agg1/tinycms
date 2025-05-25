@@ -82,11 +82,17 @@ tinycms_default_content() {
 
 tinycms_download_content() {
 	#
-	echo '<div class=col>'
+	echo '<div class=col><pre>'
 	for f in $(find ${TINYCMS_DOWNLOAD_DIR} -type f) ; do
-		echo "<a href='${f}'>$(ls --time-style='+%Y-%m-%d %M:%H' -gho "${f}")</a><br />"
+		_f=$(ls --time-style='+%Y-%m-%d %M:%H' -gho "${f}")
+		_f_size="$(echo ${_f} | cut -d' ' -f3)"
+		_f_date="$(echo ${_f} | cut -d' ' -f4)"
+		_f_time="$(echo ${_f} | cut -d' ' -f5)"
+		_f_name="$(echo ${_f} | cut -d' ' -f6)"
+		_f_entry="${_f_size}"
+		echo "<a href='${f}'>> ${_f_size}	${_f_date} ${_f_time} ${_f_name}</a>"
 	done
-	echo '</div>'
+	echo '</pre></div>'
 }
 
 tinycms_blog_content() {
