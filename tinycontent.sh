@@ -58,9 +58,9 @@ tinycms_default_content() {
 		*.md)
 			# markdown items with optional table of contents
 			if [ -z "${TINYCMS_ITEM_TOC}" ] ;then
-				markdown -f+tables,+html ${c}
+				markdown -f+tables,+footnote,+html ${c}
 			else
-				markdown -T -f+toc,+tables,+html ${c}
+				markdown -T -f+toc,+tables,+footnote,+html ${c}
 			fi
 		;;
 		*.htm*)
