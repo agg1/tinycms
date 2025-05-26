@@ -38,14 +38,15 @@ tinycms_default_content() {
 
 		# gather content item modification date if it was not available with <contentitem>.meta
 		if [ -z "${TINYCMS_ITEM_DATE}" ] ; then
-			TINYCMS_ITEM_DATE="$(date -d"$(stat -c %y ${c})" +'%Y-%m-%d %H:%S UTC' 2>/dev/null)"
+			TINYCMS_ITEM_DATE="Updated: $(date -d"$(stat -c %y ${c})" +'%Y-%m-%d %H:%S UTC' 2>/dev/null)"
 		else
-			TINYCMS_ITEM_DATE="${TINYCMS_ITEM_DATE}"
+			TINYCMS_ITEM_DATE="Created: ${TINYCMS_ITEM_DATE} - Updated: $(date -d"$(stat -c %y ${c})" +'%Y-%m-%d %H:%S UTC' 2>/dev/null)"
 		fi
+
 		if [ ! -z "${TINYCMS_ITEM_AUTHOR}" ] ; then
-			TINYCMS_ITEM_FOOTER="Updated: ${TINYCMS_ITEM_DATE} - ${TINYCMS_ITEM_AUTHOR}"
+			TINYCMS_ITEM_FOOTER="${TINYCMS_ITEM_DATE} - ${TINYCMS_ITEM_AUTHOR}"
 		else
-			TINYCMS_ITEM_FOOTER="Updated: ${TINYCMS_ITEM_DATE}"
+			TINYCMS_ITEM_FOOTER="${TINYCMS_ITEM_DATE}"
 		fi
 
 		# content item title/heading
