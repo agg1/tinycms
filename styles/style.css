@@ -245,7 +245,7 @@ p + h1,h2,h3,h4,h5,h6 {
 }
 
 table {
-	margin: 10px 0px 10px 0px;
+	margin: 10px 0px 10px 20px;
 }
 th,tr,td {
 	padding: 10px;

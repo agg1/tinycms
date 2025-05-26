@@ -1,0 +1,212 @@
+diff -Naur linux-5.9.16-gentoo.orig/include/linux/compiler-gcc.h linux-5.9.16-gentoo/include/linux/compiler-gcc.h
+--- linux-5.9.16-gentoo.orig/include/linux/compiler-gcc.h	2021-12-18 21:16:36.323465788 +0000
++++ linux-5.9.16-gentoo/include/linux/compiler-gcc.h	2021-12-18 21:27:36.493466103 +0000
+@@ -10,11 +10,6 @@
+ 		     + __GNUC_MINOR__ * 100	\
+ 		     + __GNUC_PATCHLEVEL__)
+ 
+-/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145 */
+-#if GCC_VERSION < 40900
+-# error Sorry, your compiler is too old - please upgrade it.
+-#endif
+-
+ /*
+  * This macro obfuscates arithmetic on a variable address so that gcc
+  * shouldn't recognize the original var, and make assumptions about it.
+diff -Naur linux-5.9.16-gentoo.orig/include/linux/compiler_types.h linux-5.9.16-gentoo/include/linux/compiler_types.h
+--- linux-5.9.16-gentoo.orig/include/linux/compiler_types.h	2021-12-26 20:11:11.027446634 +0000
++++ linux-5.9.16-gentoo/include/linux/compiler_types.h	2021-12-26 18:47:16.734867666 +0000
+@@ -250,6 +250,30 @@
+ /* Are two types/vars the same type (ignoring qualifiers)? */
+ #define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+ 
++#if defined(CONFIG_CC_IS_GCC) && CONFIG_GCC_VERSION < 40900
++/*
++ * We build this out of a couple of helper macros in a vain attempt to
++ * help you keep your lunch down while reading it.
++ */
++#define __pick_scalar_type(x, type, otherwise)                 \
++   __builtin_choose_expr(__same_type(x, type), (type)0, otherwise)
++
++/*
++ * 'char' is not type-compatible with either 'signed char' or 'unsigned char',
++ * so we include the naked type here as well as the signed/unsigned variants.
++ */
++#define __pick_integer_type(x, type, otherwise)                    \
++   __pick_scalar_type(x, type,                     \
++       __pick_scalar_type(x, unsigned type,                \
++           __pick_scalar_type(x, signed type, otherwise)))
++
++#define __unqual_scalar_typeof(x) typeof(                  \
++   __pick_integer_type(x, char,                        \
++       __pick_integer_type(x, short,                   \
++           __pick_integer_type(x, int,             \
++               __pick_integer_type(x, long,            \
++                   __pick_integer_type(x, long long, x))))))
++#else
+ /*
+  * __unqual_scalar_typeof(x) - Declare an unqualified scalar type, leaving
+  *			       non-scalar types unchanged.
+@@ -262,6 +286,7 @@
+ 		unsigned type:	(unsigned type)0,			\
+ 		signed type:	(signed type)0
+ 
++
+ #define __unqual_scalar_typeof(x) typeof(				\
+ 		_Generic((x),						\
+ 			 char:	(char)0,				\
+@@ -271,6 +296,7 @@
+ 			 __scalar_type_to_expr_cases(long),		\
+ 			 __scalar_type_to_expr_cases(long long),	\
+ 			 default: (x)))
++#endif
+ 
+ /* Is this type a native word size -- useful for atomic operations */
+ #define __native_word(t) \
+diff -Naur linux-5.9.16-gentoo.orig/include/uapi/linux/swab.h linux-5.9.16-gentoo/include/uapi/linux/swab.h
+--- linux-5.9.16-gentoo.orig/include/uapi/linux/swab.h	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/include/uapi/linux/swab.h	2021-12-26 18:36:11.644867349 +0000
+@@ -98,40 +98,40 @@
+  * __swab16 - return a byteswapped 16-bit value
+  * @x: value to byteswap
+  */
+-#ifdef __HAVE_BUILTIN_BSWAP16__
+-#define __swab16(x) (__u16)__builtin_bswap16((__u16)(x))
+-#else
++//#ifdef __HAVE_BUILTIN_BSWAP16__
++//#define __swab16(x) (__u16)__builtin_bswap16((__u16)(x))
++//#else
+ #define __swab16(x)				\
+ 	(__builtin_constant_p((__u16)(x)) ?	\
+ 	___constant_swab16(x) :			\
+ 	__fswab16(x))
+-#endif
++//#endif
+ 
+ /**
+  * __swab32 - return a byteswapped 32-bit value
+  * @x: value to byteswap
+  */
+-#ifdef __HAVE_BUILTIN_BSWAP32__
+-#define __swab32(x) (__u32)__builtin_bswap32((__u32)(x))
+-#else
++//#ifdef __HAVE_BUILTIN_BSWAP32__
++//#define __swab32(x) (__u32)__builtin_bswap32((__u32)(x))
++//#else
+ #define __swab32(x)				\
+ 	(__builtin_constant_p((__u32)(x)) ?	\
+ 	___constant_swab32(x) :			\
+ 	__fswab32(x))
+-#endif
++//#endif
+ 
+ /**
+  * __swab64 - return a byteswapped 64-bit value
+  * @x: value to byteswap
+  */
+-#ifdef __HAVE_BUILTIN_BSWAP64__
+-#define __swab64(x) (__u64)__builtin_bswap64((__u64)(x))
+-#else
++//#ifdef __HAVE_BUILTIN_BSWAP64__
++//#define __swab64(x) (__u64)__builtin_bswap64((__u64)(x))
++//#else
+ #define __swab64(x)				\
+ 	(__builtin_constant_p((__u64)(x)) ?	\
+ 	___constant_swab64(x) :			\
+ 	__fswab64(x))
+-#endif
++//#endif
+ 
+ static __always_inline unsigned long __swab(const unsigned long y)
+ {
+--- linux-5.9.16-gentoo.orig/include/linux/seqlock.h	2021-12-28 14:50:36.837260045 +0000
++++ linux-5.9.16-gentoo/include/linux/seqlock.h	2021-12-28 15:12:46.607260679 +0000
+@@ -243,7 +243,7 @@
+ #define __seqprop_case(s, lockname, prop)				\
+ 	seqcount_##lockname##_t: __seqcount_##lockname##_##prop((void *)(s))
+ 
+-#define __seqprop(s, prop) _Generic(*(s),				\
++/* #define __seqprop(s, prop) _Generic(*(s),				\
+ 	seqcount_t:		__seqcount_##prop((void *)(s)),		\
+ 	__seqprop_case((s),	raw_spinlock,	prop),			\
+ 	__seqprop_case((s),	spinlock,	prop),			\
+@@ -253,7 +253,11 @@
+ 
+ #define __seqcount_ptr(s)		__seqprop(s, ptr)
+ #define __seqcount_lock_preemptible(s)	__seqprop(s, preemptible)
+-#define __seqcount_assert_lock_held(s)	__seqprop(s, assert)
++#define __seqcount_assert_lock_held(s)	__seqprop(s, assert) */
++
++#define __seqcount_ptr(s)       __seqcount_ptr((void *)(s))
++#define __seqcount_lock_preemptible(s)  __seqcount_preemptible((void *)(s))
++#define __seqcount_assert_lock_held(s)  __seqcount_assert((void *)(s))
+ 
+ /**
+  * __read_seqcount_begin() - begin a seqcount_t read section w/o barrier
+@@ -271,7 +275,7 @@
+  */
+ #define __read_seqcount_begin(s)					\
+ 	__read_seqcount_t_begin(__seqcount_ptr(s))
+-
++ 
+ static inline unsigned __read_seqcount_t_begin(const seqcount_t *s)
+ {
+ 	unsigned ret;
+--- linux-5.9.16-gentoo.orig/include/linux/bits.h	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/include/linux/bits.h	2021-12-28 16:07:01.191420514 +0000
+@@ -18,29 +18,11 @@
+  * position @h. For example
+  * GENMASK_ULL(39, 21) gives us the 64bit vector 0x000000ffffe00000.
+  */
+-#if !defined(__ASSEMBLY__)
+-#include <linux/build_bug.h>
+-#define GENMASK_INPUT_CHECK(h, l) \
+-	(BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
+-		__builtin_constant_p((l) > (h)), (l) > (h), 0)))
+-#else
+-/*
+- * BUILD_BUG_ON_ZERO is not available in h files included from asm files,
+- * disable the input check if that is the case.
+- */
+-#define GENMASK_INPUT_CHECK(h, l) 0
+-#endif
+-
+-#define __GENMASK(h, l) \
+-	(((~UL(0)) - (UL(1) << (l)) + 1) & \
+-	 (~UL(0) >> (BITS_PER_LONG - 1 - (h))))
+ #define GENMASK(h, l) \
+-	(GENMASK_INPUT_CHECK(h, l) + __GENMASK(h, l))
++	(((~0UL) - (1UL << (l)) + 1) & (~0UL >> (BITS_PER_LONG - 1 - (h))))
+ 
+-#define __GENMASK_ULL(h, l) \
+-	(((~ULL(0)) - (ULL(1) << (l)) + 1) & \
+-	 (~ULL(0) >> (BITS_PER_LONG_LONG - 1 - (h))))
+ #define GENMASK_ULL(h, l) \
+-	(GENMASK_INPUT_CHECK(h, l) + __GENMASK_ULL(h, l))
++	(((~0ULL) - (1ULL << (l)) + 1) & \
++	 (~0ULL >> (BITS_PER_LONG_LONG - 1 - (h))))
+ 
+ #endif	/* __LINUX_BITS_H */
+--- linux-5.9.16-gentoo.orig/arch/arm/include/asm/spinlock_types.h	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/arch/arm/include/asm/spinlock_types.h	2021-12-28 21:05:22.558269467 +0000
+@@ -6,6 +6,8 @@
+ # error "please don't include this file directly"
+ #endif
+ 
++#include <asm-generic/int-ll64.h>
++
+ #define TICKET_SHIFT	16
+ 
+ typedef struct {
+diff -Naur linux-5.9.16-gentoo.orig/arch/x86/tools/relocs.c linux-5.9.16-gentoo/arch/x86/tools/relocs.c
+--- linux-5.9.16-gentoo.orig/arch/x86/tools/relocs.c	2020-10-11 21:15:50.000000000 -0000
++++ linux-5.9.16-gentoo/arch/x86/tools/relocs.c	2022-07-05 08:04:38.616119232 -0000
+@@ -78,6 +78,8 @@
+ 	"__end_rodata_hpage_align|"
+ #endif
+ 	"__vvar_page|"
++	"_etext|"
++	"__end_of_kernel_reserve|"
+ 	"_end)$"
+ };
+ 
