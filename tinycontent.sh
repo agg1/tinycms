@@ -51,7 +51,7 @@ tinycms_default_content() {
 
 		# content item title/heading
 		[ ! -z "${TINYCMS_ITEM_TITLE}" ] && \
-		echo "<div class=heading>${TINYCMS_ITEM_TITLE}</div>"
+		echo "<div class=item-header>${TINYCMS_ITEM_TITLE}</div>"
 
 		# content item format specific output
 		echo '<div class=col>'
@@ -77,7 +77,8 @@ tinycms_default_content() {
 		;;
 		esac
 		echo '</div>'
-		echo "<div class=text-right>${TINYCMS_ITEM_FOOTER}</div>"
+		## optional content item changelog link
+		echo "<div class=item-footer>${TINYCMS_ITEM_FOOTER}</div>"
 	done
 }
 

@@ -12,6 +12,5 @@ Implementation examples:
 - [SCRAM](https://codeberg.org/aggi/linux-tcc/commit/ede4ba1022e571cca61f35cf639b48b5d972c141) final 8x4Bytes (8x32Bit) implementation portable towards both linux-2.4 and linux-5.x loopdev which needs a legacy util-linux that supported $ losetup -e ; to pick an algorithm for encryption
 - [SCRAM88](https://codeberg.org/aggi/scram88) initial 8x8Bytes (8x64Bit) design and implementation against linux dm-crypt API for LUKS and cryptsetup that enables easy benchmarking
 
-TODO:
-Testing interoperability of Little-Endian and Big-Endian
+TODO: Testing interoperability of Little-Endian and Big-Endian
 

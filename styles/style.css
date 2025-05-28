@@ -197,13 +197,18 @@ body {
 	word-wrap: break-word;
 }
 
-.heading {
+.item-header {
 	background: var(--advice);
 	color: var(--advcolor);
 	font-weight: bold;
 	padding: 0.5em;
 	border-radius: 0.25em;
 	margin: 15px 0px 0px 0px;
+}
+
+.item-footer {
+	text-align: right;
+	color: #999;
 }
 
 /*h1 { font-size: 200% }
