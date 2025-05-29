@@ -126,6 +126,7 @@ div.col {
 	/*padding: 1em;*/
 	padding: 10px 15px 10px 15px;
 	overflow: auto; /* if a floating image is placed within prevent overflow */
+	line-height: 150%;
 }
 div.colleft {
 	margin: 10px 0px 0px 0px;
@@ -141,6 +142,7 @@ div.col ul,li,p,h1,h2,h3,h4,h5,h6 {
 	margin: 0px 0px 0px 25px;
 	padding: 0;
 	list-style-type: "> ";
+	/* float: left; */
 }
 div.col ul {
 	margin: 0px 0px 5px 0px;
@@ -155,6 +157,7 @@ ol li {
 	margin: 0px 0px 0px 15px;
 	padding: 0;
 	list-style-type: decimal;
+	clear: both;
 }
 /*ol li::marker {
 	color: var(--foreground);
@@ -197,18 +200,48 @@ body {
 	word-wrap: break-word;
 }
 
+sup {
+	line-height: 100%;
+}
+
 .item-header {
+}
+div.item-header {
 	background: var(--advice);
 	color: var(--advcolor);
 	font-weight: bold;
 	padding: 0.5em;
 	border-radius: 0.25em;
 	margin: 15px 0px 0px 0px;
+	clear: both;
 }
 
 .item-footer {
+	font-size: 12pt;
 	text-align: right;
-	color: #999;
+	color: #666;
+}
+div.item-footer {
+	float: right;
+	clear: both;
+	margin: 0px 5px 15px 0px;
+}
+div.item-footer a {
+	font-size: 12pt;
+	color: #666;
+	font-weight: normal;
+}
+
+div.col img {
+	height: auto;
+	max-width: 100%;
+	width: 100%;
+	margin-top: 0rem;
+	margin-bottom: 0rem;
+	margin-left: auto;
+	margin-right: auto;
+	display: block;
+	filter: grayscale(1) invert(1) contrast(0.86);
 }
 
 /*h1 { font-size: 200% }
@@ -223,6 +256,7 @@ h1,h2,h3,h4,h5,h6 {
 	text-transform: uppercase;
 	font-weight: bold;
 	color: var(--link);
+	clear: both;
 }
 
 a {
@@ -232,15 +266,21 @@ a {
 	/*padding-right: 0.25em;*/
 }
 a:hover {color: var(--highlight);}
-hr { border-color: var(--foreground); }
+hr {
+	border-color: var(--foreground);
+	display: block;
+	clear: both;
+}
 
 pre {
 	white-space: pre-wrap;
 	margin: 0px;
+	clear: both;
 }
 p {
 	white-space: pre-wrap;
 	margin: 0px;
+	clear: both;
 }
 p + ul,p {
 	margin: 0px 0px 5px 0px;
@@ -258,6 +298,17 @@ th,tr,td {
 	color: var(--foreground);
 	font-weight: normal;
 	text-align: left;
+}
+
+div.col code {
+	font-family: courier;
+	font-size: 12pt;
+	color: #999;
+}
+
+div.col pre {
+	line-height: 100%;
+/*	margin-left: 35px;*/
 }
 
 /*
