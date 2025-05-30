@@ -52,7 +52,8 @@ tinycms_default_content() {
 		# content item title/heading
 		if [ ! -z "${TINYCMS_ITEM_TITLE}" ] ; then
 			TINYCMS_ITEM_NAV="$(basename ${c})"
-			echo "<div class=item-header><a class=item-anchor href=${TINYCMS_NAVITEM}.html name=${TINYCMS_ITEM_NAV}></a>${TINYCMS_ITEM_TITLE}</div>"
+			echo -n "<a class=item-anchor href=${TINYCMS_NAVITEM}.html name=${TINYCMS_ITEM_NAV}></a>"
+			echo "<div class=item-header>${TINYCMS_ITEM_TITLE}</div>"
 		fi
 
 		# content item format specific output
