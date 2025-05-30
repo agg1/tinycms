@@ -7,4 +7,4 @@ Fast, simple, extensible to maintain AoT rendered static sites with a git-driven
 - to navigate and edit any content directly inside revision control system for example [tinycms.md](https://codeberg.org/aggi/tinycms/src/branch/master/content/tinycms.md)
 - and too [RSS-feeds are exposed](https://codeberg.org/aggi/tinycms/rss/branch/master/content/tinycms.md) for content items to track updates
 
-Please see [https://codeberg.org/aggi/tinycms](https://codeberg.org/aggi/tinycms) for further details and feel free to drop a note by navigating [contact](contact.html) section.
+Please see [https://codeberg.org/aggi/tinycms](https://codeberg.org/aggi/tinycms) for further details and feel free to drop a note by navigating [contact](contact.html#myself.htm) section.

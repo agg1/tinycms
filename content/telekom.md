@@ -29,7 +29,7 @@ The official "wording" chosen by Telekom University to explain themselves with t
 # Discussion
 It was almost a decade of time required to recover from this never ending and ever more escalating madness, having time to eat and sleep. Regardless of the struggle with almost a dozen relocations for traineeships, politics were fighting **their** ideological battles on my back meanwhile I am considered "distanced to labor market" by German bureaucracy finally with accusations implied not receiving any income for the work and studies of mine these qualified as "useless" "hobbies".
 
-A [proposal for a dimploma-thesis](projects.html) of **mine** is published in the projects section.
+A [proposal for a dimploma-thesis](projects.html#scram.md) of **mine** is published in the projects section.
 
 Although i would feel barely confident with **below** minimum wage income for this again to discuss some topics worthy a master degree held by any international telco manager:
 
