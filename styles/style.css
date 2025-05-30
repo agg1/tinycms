@@ -204,8 +204,6 @@ sup {
 	line-height: 100%;
 }
 
-.item-header {
-}
 div.item-header {
 	background: var(--advice);
 	color: var(--advcolor);
@@ -218,12 +216,12 @@ div.item-header {
 a.item-anchor {
 	visibility:hidden;
 }
-.item-footer {
+
+div.item-footer {
+	font-family: courier;
 	font-size: 12pt;
 	text-align: right;
 	color: #666;
-}
-div.item-footer {
 	float: right;
 	clear: both;
 	margin: 0px 5px 15px 0px;
@@ -313,6 +311,11 @@ div.col pre {
 	line-height: 100%;
 	font-family: courier;
 /*	margin-left: 35px;*/
+}
+
+blockquote {
+	font-family: monospace;
+	font-size: 14pt;
 }
 
 /*
