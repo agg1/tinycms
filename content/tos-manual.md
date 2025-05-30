@@ -1,6 +1,6 @@
 # Summary
 Beginning with the definition of **acceptance criteria** and priority for toolchain portability set this developer manual documents the process of establishing and maintaining a **complete** mostly-GNU/POSIX operating system profile fully supported with TinyCC toolchain for the tinyfront operating system (TOS). To accomplish this task kernel, libc, development-utilities and software component portage-tree were fully forked. For sufficient test coverage and portability several system-deployment variants are kept in maintenance with a final operating system distribution
-[i586-tinycc-linux2-musl.iso](download.html) being the major test-vector. Furthermore compilation of a complete operating system release significantly extends test-coverage for TinyCC toolchain itself.
+[i586-tinycc-linux2-musl.iso](download.html) being the major test-vector. [Compilation of a complete operating system release significantly extends test-coverage](https://lists.gnu.org/archive/html/tinycc-devel/2025-05/msg00002.html) for TinyCC toolchain itself.
 
 # Acceptance Criteria
 Given common definitions to agree upon:
@@ -22,10 +22,10 @@ With tinyfront system *full standards compliance is not feasible* and extensions
 
 By extending [portability](#Portability-and-Test-Coverage) back towards [linux-2.4 syscall ABI](#Kernel) with [TinyCC toolchain](https://bellard.org/tcc) in [software engineering](https://en.wikipedia.org/wiki/Software_engineering#Criticism) terms:
 
-- [Compatibility](https://en.wikipedia.org/wiki/Software_incompatibility) is prioritized over
+- [Compatibility](https://en.wikipedia.org/wiki/Computer_compatibility) is prioritized over
 - [Interoperability](https://en.wikipedia.org/wiki/Interoperability) which implied unstable non-standard components for latest feature creep
 
-Due to various interdependent issues involved with tinyfront system acceptrance criteria in detail:
+Due to various interdependent issues involved with tinyfront system acceptance criteria in detail:
 
 - First all C++ dependencies were sanitized from the dependency graph to keep them **optional**
 - Then a **complete** system profile including development utilities was verified to compile and boot with TinyCC toolchain instead of GNU toolchain
@@ -35,7 +35,7 @@ Due to various interdependent issues involved with tinyfront system acceptrance 
 - of cause [GCC](https://gcc.gnu.org) C and C++ compilers can be retained to extend test-coverage
 - but GNU toolchain (and llvm/clang) will be fully optional with tinyfront system
 
-Because since when GNU compiler switched to C++ implementation language internally itself and related [discussions summarized at https://lwn.net/Articles/542457](https://lwn.net/Articles/542457) focus on "benefits" of C++ implementation, without recognizing the long-term impact this had onto bootstrapping of GNU toolchain itself and the hindrance C++ was for vendor-neutral toolchain portability. Since then bootstrapping GCC remains blocked at gcc-4.7.4 since any later version requires a C++ compiler. Furthermore gcc-4.7.4 must be kept in maintenance and testing indefinitely since it is this version which permits the transition from C to C++. [GNU](https://gnu.org) and [FSF](https://fsf.org) projects obsoleted this compiler version long time ago without any further support provided, in parallel to various important architectures (aarch64!, riscv64) available with later compiler versions only which enforces a toolchain upgrade for those. Any system which requires a recent GNU compiler or llvm/clang compiler versions then locked into a transitive dependency towards C++ always, even when software itself was not written in C++ but C only! [^GNU-features]
+Because since when GNU compiler switched to C++ implementation language internally itself and related [discussions summarized at https://lwn.net/Articles/542457](https://lwn.net/Articles/542457) focus on "benefits" of C++ implementation, without recognizing the long-term impact this had onto bootstrapping of GNU toolchain itself and the hindrance C++ was for vendor-neutral toolchain portability. Since then bootstrapping GCC remains blocked at gcc-4.7.4 since any later version requires a C++ compiler. Furthermore gcc-4.7.4 must be kept in maintenance and testing indefinitely since it is this version which permits the transition from C to C++. [GNU](https://gnu.org) and [FSF](https://fsf.org) projects obsoleted this compiler version long time ago without any further support provided, in parallel to various important architectures (aarch64!, riscv64) available with later compiler versions only which enforces a toolchain upgrade in violation of acceptance criteria. Any system which requires a recent GNU compiler or llvm/clang compiler version then locked into a transitive dependency towards C++ always, even when software itself was not written in C++ but C only! [^GNU-features]
 
 [^GNU-features]: "In GNU utils, incompatible features and extensions are a feature, not a bug." [harmful.cat-v.org](http://harmful.cat-v.org/software/GNU)
 
@@ -50,20 +50,20 @@ Strict acceptence criteria for [system integration](https://en.wikipedia.org/wik
 
 [^Thompson-Hack]: [Ken Thompson Hack injects a virus into compiler whose source code thereafter contains no evidence](https://wiki.c2.com/?TheKenThompsonHack)
 
-All test-vectors should have a complete bootstrapping path which so far was confirmed with ARCH=x86 only, and of cause the final system must be [self-hosting](https://en.wikipedia.org/wiki/Self-hosting_compilers)[^Self-Hosting] including all required [development utilities](#Development-Utilities). With tinyfront acceptance criteria both bootstrapping and self-hosting must be confirmed. Therefore tinyfront system will converge and fully re-integrate with a complete bootstrapping chain, with a slightly different approach:
+All test-vectors should have a complete bootstrapping path which so far was confirmed with ARCH=x86 only, and of cause the final system must be [self-hosting](https://en.wikipedia.org/wiki/Self-hosting_%28compilers%29)[^Self-Hosting] including all required [development utilities](#Development-Utilities). With tinyfront acceptance criteria both bootstrapping and self-hosting must be confirmed. Therefore tinyfront system will converge and fully re-integrate with a complete bootstrapping chain, with a slightly different approach:
 
 - While bootstrappable.org confirmed the feasibility of bootstrapping gcc and binutils themselves with TinyCC
 - TinyCC itself instead is used to compile the **complete** tinyfront system profile *before* gcc/binutils were available to do so
 - To benefit from the specific design principle as [single-pass compiler](https://en.wikipedia.org/wiki/One-pass_compiler) with [exemplary compile-time performance](https://bellard.org/tcc)[^cpp-singlepass]
 - Which furthermore extends portability requirements for the base sytem profile with both TinyCC and **optional** GCC/binutils later
 - Although TinyCC chosen as main system compiler limits the available [kernel](#Kernel) and [libc](#Libc) options
-- Flexibility with toolchain options available is increased because TinyCC verification too establishes a **[baseline](https://en.wikipedia.org/wiki/Baseline_configuration_management)** for any other hypothetical [system-ingegration](https://en.wikipedia.org/wiki/Integration_testing) [test-vector](https://en.wikipedia.org/wiki/Test_vector)
+- Flexibility with toolchain options available is increased because TinyCC verification too establishes a **[baseline](https://en.wikipedia.org/wiki/Baseline_%28configuration_management%29)** for any other hypothetical [system-ingegration](https://en.wikipedia.org/wiki/Integration_testing) [test-vector](https://en.wikipedia.org/wiki/Test_vector)
 
 [^Self-Hosting]: A system-integration path being self-hosting without bootstrapping procedure disclosed then hides the early-stages when a virus may be injected into the toolchain with the Thompson-Hack and no traces of evidence remain within the source code available.
 
 [^cpp-singlepass]: It is unknown if a compiler can be implemented as single-pass design for and with C++, and this could explain the [abysmal compile-time performance and memory usage](https://www.google.com/search?q=g%2B%2B+memory+usage) of C++ compilers.
 
-Mentioned approaches of tinyfront system and bootstrappable.org do not conflict with each other, but strictness of acceptance criteria varies slightly with either. Relying upon a clean bootstrapping chain implies some important [portability](#Portability-and-Test-Coverage) issues were coped with appropriately in any case. And with either approach gcc/binutils can be bootstrapped, with bootstrappable.org this being mandatory, and with a complete tinyfront system profile this remaining optional.
+Mentioned approaches of tinyfront system and bootstrappable.org do not conflict with each other, but strictness of acceptance criteria varies slightly with either. Relying upon a clean bootstrapping chain implies some important [portability](#Portability-and-Test-Coverage) issues were coped with appropriately in any case. And with either approach gcc/binutils can be bootstrapped, with bootstrappable.org this being mandatory, and with a complete tinyfront system profile GNU toolchain remaining optional.
 
 # Portability and Test Coverage
 To ensure system integration test-coverage of any test-vector a **complete** system must compile and boot with a "full source bootstrapping" workflow.
@@ -75,9 +75,9 @@ Meanwhile then portability and bootstrapping **with** and **of** any component s
 - Kernel
 - etc.
 
-must not be confused. For example GNU Compiler (GCC) is recognized for it's support of many architectures, but GCC itself is not easily bootstrapped. Because GCC ensures portability and cross-compilation towards many [architectures](#Architectures), for bootstrapping GCC itself TinyCC was required which currently limits the portability of GCC with this procedure to ARCH=x86. Furthermore only a [linux-2.4](#Kernel) can be supported with both GCC **and** TinyCC toolchain by tinyfront system, and this linux-2.4 kernel version itself again was not portable to various [architectures](#Architectures) with TinyCC other than ARCH=x86 again.
+must not be confused. For example GNU Compiler (GCC) is recognized for it's support of many architectures, but GCC itself is not easily bootstrapped. Because GCC ensures portability and cross-compilation towards many [architectures](#Architectures), for bootstrapping GCC itself TinyCC was required which currently limits the portability of GCC with this procedure to ARCH=x86. Furthermore only a [linux-2.4](#Kernel) can be supported with both GCC **and** TinyCC toolchain by tinyfront system, and this linux-2.4 kernel version itself again was not portable to various architectures with TinyCC other than ARCH=x86 again.
 
-The multi-dimensional test-case matrix expands to rather many test-cases which cannot be all verified individually. Hence careful choices to prioritize test-cases to limit their total amount was necessary to cover as many other indirectly related ones. And the choice of TinyCC toolchain as major test-vector merely is the result of intersecting all options against acceptance criteria. Supporting a complete tinyfront operating system release with [i586-tinycc-linux2-musl.iso](download.html) then imposes practical limitations, but test coverage against acceptance criteria and bootstrapping intersects far more test-cases with TinyCC than using GNU toolchain for a dozen different architectures with hundreds of "different" distributions following a fast-paced release-cycle to integrate latest kernels and compiler versions ever did in recent decades.
+The multi-dimensional test-case matrix expands to rather many test-cases which cannot be all verified individually. Hence careful choices to prioritize test-cases to limit their total amount was necessary to cover as many other indirectly related ones. And the choice of TinyCC toolchain as major test-vector merely is the result of intersecting all options against acceptance criteria. Supporting a complete tinyfront operating system release with [i586-tinycc-linux2-musl.iso](download.html) then imposes practical limitations, but test coverage against acceptance criteria and bootstrapping intersects far more test-cases with TinyCC than using GNU toolchain only ever did in recent decades with a dozen different architectures and hundreds of "different" distributions following a fast-paced release-cycle to integrate latest kernels and compiler versions.
 
 Limitations of portability and conflicts with [acceptance criteria](#Acceptance-Criteria) are mentioned for individual combinations in the following chapters.
 
@@ -91,12 +91,14 @@ cproc/qbe(2)	|--		|PARTIAL(2)	|--		|--		|--		|IRRELEVANT	|
 PCC(5)		|--		|--		|--		|--		|--		|--		|
 SCC(6)		|--		|--		|--		|--		|--		|--		|
 
-1. A complete mostly-POSIX base system profile fully supported with TinyCC establishes a **baseline** for other variants (cproc, PCC, SCC), since i386-tcc partially covers relevant issues for any other such approach such as sanitizing the profile from c++. Obviously TinyCC alone cannot retain full test-coverage hence portability towards and with GCC is retained too.
+1. A complete mostly-POSIX base system profile fully supported with TinyCC establishes a **baseline** for other variants (cproc, PCC, SCC), since i386-tcc partially covers relevant issues for any other such approach such as sanitizing the profile from c++. Obviously TinyCC alone cannot retain full test-coverage hence portability towards and with GCC is retained too.[^tinycc-regressions]
 2. [Oasis-Linux](https://github.com/oasislinux/oasis) supports a userspace with cproc compiler but kernel/bootloader require additional gcc/binutils to retain a complete system still.
 3. Notable development efforts for RISCV64 is relevant for a long term perspective since Intel&reg; obsoleted their own X86 real-mode support required for both booting tinyfront system with and most important ARCH=x86 was the basis for any bootstrapping to begin with. Furthermore currently no other than ARCH=x86 got a somewhat clean and verified bootstrapping dependency chain implemented with [live-bootstrap](https://github.com/fosslinux/live-bootstrap) and a cross-compilation from any HOST=x86 towards another TARGET possible if that was not fully covered by [bootstrappable.org](https://bootstrappable.org) yet.
 4. Other architectures are irrelevant with tinyfront system portability and compatibility.
 5. No complete system integration is known to exist with [Portable C Compiler](https://en.wikipedia.org/wiki/Portable_C_Compiler) toolchain.
 6. No complete system integration is known to exist with [Simple C Compiler](http://www.simple-cc.org/) toolchain.
+
+[^tinycc-regressions]: [Regression testing with a complete i586-tinycc-linux2-musl.iso distribution](https://lists.gnu.org/archive/html/tinycc-devel/2024-11/msg00016.html)
 
 ![GCC Lines-of-Code](files/gcc-lines-of-code.webp)
 <div class=item-footer>GCC Soars Past 14.5 Million Lines Of Code - <a href='https://www.phoronix.com/news/MTg3OTQ'>phoronix.com</a></div>
@@ -227,7 +229,7 @@ This kernel can be compiled with TinyCC either [AoT](https://en.wikipedia.org/wi
 To ensure test-coverage with various other kernel versions and architectures GCC must be retained as it was shown with bootstrappable.org kernel bootstrapping procedure. For tinyfront system finally it is ARCH=x86 again intersecting with linux-2.4 kernel remaining *only* to ensure portability towards different toolchains with TinyCC.
 
 # Libc
-In principle [musl-libc](https://musl.libc.org) is portable towards many architectures and recent kernel versions with [decent reputation for it's size and standard-compliance](http://www.etalabs.net/compare_libcs.html). And the choice of [standard C-library](https://en.wikipedia.org/wiki/C_standard_library) is limited by the available linux-2.4 kernel and TinyCC toolchain combination already. Since bootstrappable.org too had chosen musl-libc-1.1.24 version with an early bootstrapping stage and TinyCC involved in live-bootstrap, some related portability issues were coped with already:
+In principle [musl-libc](https://musl.libc.org) is portable towards many architectures and recent kernel versions with [decent reputation for it's size and standard-compliance](https://www.etalabs.net/compare_libcs.html). And the choice of [standard C-library](https://en.wikipedia.org/wiki/C_standard_library) is limited by the available linux-2.4 kernel and TinyCC toolchain combination already. Since bootstrappable.org too had chosen musl-libc-1.1.24 version with an early bootstrapping stage and TinyCC involved in live-bootstrap, some related portability issues were coped with already:
 
 &nbsp;		|musl-1.1.x		|musl-1.2.x	|newlib(3)	|glibc(4)	|
 ----------------|-----------------------|-------------------------------|---------------|
@@ -235,9 +237,9 @@ In principle [musl-libc](https://musl.libc.org) is portable towards many archite
 GCC4		|OK			|OK		|IRRELEVANT	|IRRELEVANT	|
 GCC6		|OK			|OK		|IRRELEVANT	|IRRELEVANT	|
 
-1. None of the [musl-libc versions](https://wiki.musl-libc.org/supported-platforms) mentions official support for linux-2.4 kernel [system call](https://en.wikipedia.org/wiki/System_call) [application binary interface](https://en.wikipedia.org/wiki/Application_binary_interface) (ABI) with multi-threading, which seems to rely upon [NPTL](https://en.wikipedia.org/wiki/NPTL). Rrequired [patches were rebased back onto linux-2.4](https://codeberg.org/aggi/linux-tcc/commit/75452534b84677468a6f6032096ad56ebb93024a). Further patching for linux-2.4 syscall ABI involved merely some headers removed for unsupported syscalls to prevent runtime ENOSYS errors and avoiding userspace compile-time mis-leading header tests against musl-libc.
+1. None of the [musl-libc versions](https://wiki.musl-libc.org/supported-platforms) mentions official support for linux-2.4 kernel [system call](https://en.wikipedia.org/wiki/System_call) [application binary interface](https://en.wikipedia.org/wiki/Application_binary_interface) (ABI) with multi-threading, which seems to rely upon [NPTL](https://en.wikipedia.org/wiki/NPTL). Required [patches were rebased back onto linux-2.4](https://codeberg.org/aggi/linux-tcc/commit/75452534b84677468a6f6032096ad56ebb93024a). Further patching for linux-2.4 syscall ABI involved merely some headers removed for unsupported syscalls to prevent runtime ENOSYS errors and avoiding userspace compile-time mis-leading header tests against musl-libc.
 2. musl-1.2.x version is used with GCC test-vectors without priority for TinyCC support since musl-1.1.24 is mostly stabilized for linux-2.4 syscall ABI.
-3. [Newlib from IBM/RedHat](https://www.sourceware.org/newlib/libc.html) was chosen by [fiwix.org operating system](https://fiwix.org) and portability tested there. Although newlib can be considered as an alternative option for tinyfront it is not necessary because the test-vector is covered by fiwix.org already.
+3. [Newlib from IBM/RedHat](https://sourceware.org/newlib) was chosen by [fiwix.org operating system](https://fiwix.org) and portability tested there. Although newlib can be considered as an alternative option for tinyfront it is not necessary because the test-vector is covered by fiwix.org already.
 4. Supporting [GNU libc](https://www.gnu.org/software/libc) with TinyCC seems unrealistic and glibc is test-covered by hundreds of distributions for the sake of joy of millions of users and developers.
 
 Keeping musl-libc portable for both linux-2.4 and linux-5 with full cross-compilation support is the major criteria for a complete userspace including development utilities remaining with all relevant test-vectors. Libc compatibility with various other [kernels](#Kernel) and [architectures](#Architectures) is not investigated further.
@@ -258,7 +260,7 @@ TODO:
 **TinyCC**	|***FAILED(1)***	|***OK(2)***	|
 GCC		|OK			|IRRELEVANT	|
 
-1. Dynamic-linking[^dynamic-linking] support is test-covered with GCC sufficiently. With TinyCC however an unresolved problem causes [musl-libc dynamic loader libc.so segfault]() and **optional** dynamic linking support cannot be offered yet.
+1. Dynamic-linking[^dynamic-linking] support is test-covered with GCC sufficiently. With TinyCC however an unresolved problem causes [musl-libc dynamic loader libc.so segfault](https://lists.gnu.org/archive/html/tinycc-devel/2024-11/msg00043.html) and **optional** dynamic linking support cannot be offered yet.
 2. As a consequence static-linking must be supported with **all** [userspace system components](#Userspace-Fork) for TinyCC. By coincidence static-linking is a suitable option with tinyfront system which too enforces this test-vector variable being **fully** covered which it rarely ever was among hundreds of "distributions" elsewhere (except Oasis Linux for example, tinyfront system, and 9front.org)
 
 [^dynamic-linking]: "I tend to think the drawbacks of dynamic linking outweigh the advantages for many applications." John Carmack [harmful.cat-v.org](https://harmful.cat-v.org/software/dynamic-linking)
@@ -266,26 +268,27 @@ GCC		|OK			|IRRELEVANT	|
 Finally a complete test-vector got intersected for [i586-tinycc-linux2-musl.iso](download.html) completely statically linked with TinyCC.
 
 # Assembler
-&nbsp;		|x86 real-mode	|x86_32		|x86-64		|aarch32	|aarch64	| riscv-64	|
+&nbsp;		|x86 real-mode	|x86_32		|x86-64		|aarch32(6)	|aarch64	| riscv-64	|
 ----------------|---------------|---------------|---------------|---------------|---------------|---------------|
 **TinyCC**	|**MISSING(1)**	|**OK(3)**	|INCOMPLETE	|INCOMPLETE	|--		|OPEN(4)	|
 AS86(2)		|**(OK)**	|--		|--		|--		|--		|--		|
 Binutils	|OK(5)		|OK		|OK		|OK		|OK		|OK		|
 
-1. [TinyCC does not support X86 real-mode assembler required for bootcode]() inside bootloader, kernel and tccboot.
+1. [Regression in tinycc x86 assembly/pre-processor parser](https://lists.gnu.org/archive/html/tinycc-devel/2024-11/msg00020.html) noticed. [Principle issues with x86 16bit real-mode assembly](https://lists.gnu.org/archive/html/tinycc-devel/2024-11/msg00055.html) exist. TinyCC cannot support X86 real-mode assembler required for bootloader, kernel and tccboot.
 2. As an alternative [AS86 assembler](https://wiki.osdev.org/AS86) exists which a re-write of real-mode asm from [AT&T GAS syntax](https://tldp.org/HOWTO/Assembly-HOWTO/gas.html) to [Intel syntax](https://en.wikipedia.org/wiki/X86_assembly_language#Syntax) is necessary with.
 3. Inline assembly inside linux-2.4 kernel, musl-libc and [syslinux-3.86 bootloader](https://wiki.syslinux.org) passed.
 4. The status of riscv64 assembler with TinyCC was not investigated yet. Notable development activity exists for a long-term perspective.
 5. [GNU binutils](https://www.gnu.org/software/binutils/) can be compiled/bootstrapped with TinyCC, which introduces a circular dependency because binutils were required **before** bootstrapping of them was possible. Bootstrappable.org however implemented various loaders and assemblers (stage0-posix.hex) and with this approach TinyCC and binutils can be emitted to proceed without a circular dependency.
+6. [arm-tcc compilation error while processing inline assembly](https://lists.gnu.org/archive/html/tinycc-devel/2025-05/msg00003.html)
 
 # Boot Code
-Tinyfront system and too bootstrappable.org rely upon [X86](https://en.wikipedia.org/wiki/X86) hardware introduced in 1978 ever since then supporting real-mode [IBM-PC BIOS](https://en.wikipedia.org/wiki/BIOS) boot! Since [Intel&reg; began phasing out real-mode boot](https://www.anandtech.com/show/12068/intel-to-remove-bios-support-from-uefi-by-2020) with their latest [UEFI](https://en.wikipedia.org/wiki/UEFI_CSM#CSM_booting) this poses an unpreceeded risk for **loss of [backwards compatibility](https://en.wikipedia.org/wiki/Backward_compatibility)** preventing tinyfront system boot and threatening the **only** complete bootstrapping path to arrive at a bootable kernel that existed with bootstrappable.org and was relied upon for any other system that got cross-compiled from some ARCH=x86 host.[^CSM-emulation]
+Tinyfront system and too bootstrappable.org rely upon [X86](https://en.wikipedia.org/wiki/X86) hardware introduced in 1978 ever since then supporting real-mode [IBM-PC BIOS](https://en.wikipedia.org/wiki/BIOS) boot! Since [Intel&reg; began phasing out real-mode boot](https://www.anandtech.com/show/12068/intel-to-remove-bios-support-from-uefi-by-2020) with their latest [UEFI](https://en.wikipedia.org/wiki/UEFI_CSM#CSM_booting) this poses an unpreceeded risk for **loss of [backward compatibility](https://en.wikipedia.org/wiki/Backward_compatibility)** preventing tinyfront system boot and threatening the **only** complete bootstrapping path to arrive at a bootable kernel that existed with bootstrappable.org and was relied upon for any other system that got cross-compiled from some ARCH=x86 host.[^CSM-emulation]
 
 [^CSM-emulation]: Chainloading a UEFI-shim payload which can emulate real-mode BIOS boot with [https://github.com/FlyGoat/csmwrap](https://github.com/FlyGoat/csmwrap) remains inconclusive if basic hardware initialization for Vesa-graphics, SATA/IDE disks and interoperatbility with kernel were guaranteed to initialize hardware including APIC, USB on latest Intel&reg; with their own [CSM vendor-specification efi-compatibility-support-module-specification-v098.pdf](https://www.intel.com/content/dam/www/public/us/en/documents/reference-guides/efi-compatibility-support-module-specification-v098.pdf)
 
 Binutils assembler introduced a gigantic circular dependency graph into tinyfront system for real-mode asm of booloader, kernel and optional [tccboot](https://bellard.org/tcc/tccboot.html) JiT kernel compilation support. Currently at least binutils can be bootstrapped to remain self-hosting with TinyCC easily. AS86 would introduce a far less critical dependency graph. Depending on when linux-2.4 booted into was necessary to proceed with bootstrapping a 16bit real-mode bootcode assembler is needed rather early during bootstrapping. For earliest stages of bootstrapping it may not be necessary to rewrite bootcode because bootstrappable.org got a system integration with their custom loaders/hex-assemblers to arrive at binutils and/or AS86.
 
-Further system integration issues and circular dependencies involved with firmware-development and deployment of [coreboot](https://www.coreboot.org) and [SeaBIOS](https://www.seabios.org/SeaBIOS) relying upon GNU toolchain are not covered and circular dependencies cannot be avoided without [considerations for choice of hardware](#Considerations-for-Choice-of-Hardware).
+Further system integration issues and circular dependencies involved with firmware-development and deployment of [Coreboot](https://www.coreboot.org) and [SeaBIOS](https://www.seabios.org/SeaBIOS) relying upon GNU toolchain are not covered and circular dependencies cannot be avoided without [considerations for choice of hardware](#Considerations-for-Choice-of-Hardware).
 
 No other test-vector than i586-tinycc-linux2-musl.iso is investigated further, because no known option exists to avoid circular dependencies and other systems in question indirectly rely upon initial bootstrapping with X86 and cross compilation still.
 
@@ -300,7 +303,7 @@ To produce i586-tinycc-linux2-musl.iso tinyfront system two options exist:
 Cross-Compiling BUILD!=TARGET	|**BUGS**(1)	|OK(2)	|
 Canadian-Cross			|**BUGS**(1)	|OK(2)	|
 
-1. Currently TinyCC support to emit [i586-tinycc-linux2-musl.iso](download.html) tinyfront system was hacked into [gentoo crossdev](https://wiki.gentoo.org/wiki/Crossdev) with some [crossbuild scripting](src.html) and a forked portage tree. So far a BUILD=HOST=TARGET=x86 crossdev-setup to swap toolchain from GCC towards TinyCC was confirmed. TinyCC itself seems to be affected by [cross-compiliation issues when transitioning beyond different ARCH while cross-compiling]().
+1. Currently TinyCC support to emit [i586-tinycc-linux2-musl.iso](download.html) tinyfront system was hacked into [gentoo crossdev](https://wiki.gentoo.org/wiki/Crossdev) with some [crossbuild scripting](src.html#gitweb.md) and a forked portage tree. So far a BUILD=HOST=TARGET=x86 crossdev-setup to swap toolchain from GCC towards TinyCC was confirmed. TinyCC itself seems to be affected by [mis-compiled binaries with i386-tcc for TARGET=x86 on BUILD=arm host](https://lists.gnu.org/archive/html/tinycc-devel/2025-05/msg00000.html).
 2. It is possible to bootstrap GNU toolchain with TinyCC still to retain flexibility and test-coverage for any other TARGET than ARCH=x86, which cross-compilation is a common approach for and the reason why bootstrapping chain with ARCH=x86 build-host must remain stable.
 
 # Development Utilities
@@ -309,16 +312,16 @@ System integration and build system tooling must be covered in the complete [por
 Since compatibility was prioritized most build system development tools are covered by POSIX standardization:
 
 - [Makefiles](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html)
-- [M4 macros](https://en.wikipedia.org/wiki/M4_(computer_language) for GNU Automake/Autoconf
+- [M4 macros](https://en.wikipedia.org/wiki/M4_%28computer_language%29) for GNU Automake/Autoconf
 - [Shell script](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html)
 
 However, [GNU autotools](https://www.gnu.org/software/automake/manual/html_node/Autotools-Introduction.html) and [gentoo portage](https://wiki.gentoo.org/wiki/Portage) relied upon with self-hosting system-integration of all test-vectors currently, the dependencies of [Perl](https://www.perl.org) and [Python](https://www.python.org) must be maintained for compliance with acceptance criteria too, even when these languages are **not** covered by POSIX standardization.
-To keep Perl and Python optional implies significant effort for re-writing packaging, which is feasible and demonstrated with [Oasis Linux](https://github.com/oasislinux/oasis) for example which avoid autotools and with it Perl completely. Gentoo tooling can be replaced with an alternative [void xbps](https://docs.voidlinux.org/xbps/index.html) to abandon Python then. An extension beyond standardization with Perl/autotools and Python/portage is considered less severe than an otherwise urgent re-write of build-system and packaging for [userspace](),because:
+To keep Perl and Python optional implies significant effort for re-writing packaging, which is feasible and demonstrated with [Oasis Linux](https://github.com/oasislinux/oasis) for example which avoid autotools and with it Perl completely. Gentoo tooling can be replaced with an alternative [void xbps](https://docs.voidlinux.org/xbps/index.html) to abandon Python then. An extension beyond standardization with Perl/autotools and Python/portage is considered less severe than an otherwise urgent re-write of build-system and packaging for the [userspace fork](#Userspace-Fork), because:
 
 1. Python can be bootstrapped and remain self-hosting with TinyCC, then too **optional** Gentoo-tooling can be bootstrapped and remain self-hosting for all relevant test-vectors.
 2. For GNU autotools a recent perl-5.36.0 version besides the older perl-5.8.6 passed with TinyCC toolchain, the latter required to cover bootstrapping and the former confirmed for cross-compilation for all relevant test-vectors.
 
-With autotools/autoreconf/Perl and portage/Python mainline system-integration tooling is available, both bootstrappable and self-hosting. As a compromise these must remain an **optional extension beyond standardization with POSIX** and it is **not** considered a violation of standards with defined acceptance criteria then.
+With autotools/autoreconf/Perl and portage/Python mainline system-integration tooling is available, both [bootstrappable](https://en.wikipedia.org/wiki/Bootstrappable_builds) and [self-hosting](https://en.wikipedia.org/wiki/Self-hosting_%28compilers%29). As a compromise these must remain an **optional extension beyond standardization with POSIX** and it is **not** considered a violation of standards with defined acceptance criteria then.
 
 An alternative [POSIX make](https://frippery.org/make) implementation exists to replace [GNU make](https://www.gnu.org/software/make) with. Other [BSD make](https://wiki.netbsd.org/tutorials/bsd_make) or [9front mk](https://man.9front.org/1/mk) peculiarities are not investigated. [CMake](https://cmake.org) generator must be avoided because it is implemented in C++ itself and by this blocks vendor-neutral toolchain portability.
 
@@ -332,7 +335,9 @@ With bootstrapping arriving at TinyCC compiler, bootable kernel, and musl-libc p
 - static linking
 - Including all required development utilities across all relevant test-vectors to remain self-hosting
 
-For compliance with acceptance criteria and extended portability ~500 ebuilds were forked and kept in maintenance. Syncing against available portage tree was re-confirmed up until latest ~testing branch Feb/2025 with the forked portage tree containing hundreds of patches at [tinyfront/gitweb](src.html).
+With linux-2.4 some components had to be backtracked and bisected for compatibility accross 20years with sources salvaged from [various archives](src.html#code-diverse.md).
+
+For compliance with acceptance criteria and extended portability ~500 ebuilds were forked and kept in maintenance. Syncing against available portage tree was re-confirmed up until latest ~testing branch Feb/2025 with the forked portage tree containing hundreds of patches at [tinyfront/gitweb](src.html#gitweb.md).
 
 Various additional features are:
 
@@ -346,31 +351,32 @@ Various additional features are:
 See [tinyfront-profile.list](downloads/tinyfront-profile.list) in the download section for an overview of all components retained with tinyfront system.
 
 # Bootstrapping and Compilation Instructions
-Tinyfront system integration was designed to simplify "full source bootstrapping" of a complete system from scratch to emit a final bootable ISO release fully automated with:
+Tinyfront system integration was designed to simplify ["full source bootstrapping"](#Acceptance-Criteria) of a complete system from scratch to emit a final bootable [CD ISO](https://en.wikipedia.org/wiki/ISO_9660) release fully automated with:
 
-- [live-bootstrap]() scripting for bootstrapping
-- and [crossbuild](src.html) scripting for kernel and userspace cross-compilation towards all relevant test-vectors
+- [live-bootstrap](https://github.com/fosslinux/live-bootstrap) scripting
+- and [crossbuild](src.html#gitweb.md) scripting for kernel and userspace cross-compilation towards all relevant test-vectors
 
-Development and testing of individual software updates is possible with available system integration tooling to emit updates inegrated into subsequent production of bootable tinyfront ISO releases.
+Development and testing of individual software updates is possible with the [system integration tooling](#Development-Utilities) to integrate updates into subsequent release builds of bootable tinyfront ISOs.
 
 # Considerations for Choice of Hardware
 Since ARCH=x86 remains the major test vector with TinyCC this implies choice of hardware made with it. Sufficient and affordable long term refurbished hardware supply with processing power is available:
 
 - However portability towards linux-2.4 impacts support for USB, SATA, Ethernet, SMP must remain with it. In particular a backport for a commonly available usb-ethernet is required because no standard implementation for ethernet chips exists for dozens of different manufacturers.
-- Some Libre Firmware options such as [Coreboot](https://www.coreboot.org) or [u-boot loader](https://www.u-boot.org) should exist even when those would clash with acceptance criteria by introducing circular dependencies into the build-time dependencies for firmware bootstrapping.
+- Some Libre Firmware options such as [Coreboot](https://www.coreboot.org) or [U-Boot Loader](https://www.u-boot.org) should exist even when those would clash with acceptance criteria by introducing circular dependencies into the build-time dependencies for firmware bootstrapping.
 - Free/Open SoC designs for FPGA deployment should exist even when those would clash with acceptance criteria by introducing circular dependencies with hardware design and development utilities.
 - For ARCH=x86 some interesting i486 SoC deployment onto FPGA was demonstrated already with [ao486 project](https://github.com/MiSTer-devel/ao486_MiSTer), which too got libre firmware support implemented. Depending on vendor chosen for hardware-development some of this is [free/opensource with Lattice-Semi](https://wiki.debian.org/FPGA/Lattice).
 - Avoiding any circular dependency with hardware development tooling involved indicates a most severe regression of more than 40years back till [z80](https://en.wikipedia.org/wiki/Zilog_Z80) with [S-100 BUS](https://en.wikipedia.org/wiki/S-100_bus) 16bit systems predating the [original IBM PC](https://en.wikipedia.org/wiki/IBM_Personal_Computer) proprietary system.
 
-For additional cross-compilation test-vectors towards ARCH=arm32/64 the [rock64 device](https://pine64.org/devices/rock64/) from pine64.org project was used with GNU toolchain, linux-5 kernel, and fully Libre u-boot loader firmware available.
+For additional cross-compilation test-vectors towards ARCH=arm32/64 the [rock64 device](https://pine64.org/devices/rock64) from pine64.org project was used with GNU toolchain, linux-5 kernel, and fully "libre" u-boot loader firmware available.
 
 Bootstrapping attempts outside X86 PC realm with both hardware development and software covered are leaving traces back until the early days of [Research Unix](https://en.wikipedia.org/wiki/Research_Unix) for example projects maintained until today at [MIT](https://en.wikipedia.org/wiki/MIT) to study ancient [PDP-11](https://en.wikipedia.org/wiki/PDP-11) of nowadays defunct [Digital Equipment Corporation](https://en.wikipedia.org/wiki/Digital_Equipment_Corporation) (DEC) running [xv6 teaching operating system](https://ocw.mit.edu/courses/6-828-operating-system-engineering-fall-2012/pages/study-materials).
 
 # Installation Instructions
-With a zero-config approach for a bootable live-system ISO release with read-only squashfs tinyfront system does not need any installation. The ISO image can easily be burned onto CD-ROM or the a hybrid-ISO disk-dumped onto USB flash memory.
+With a zero-config approach for a bootable live-system ISO release with read-only squashfs tinyfront system does not need any installation. The ISO image can easily be burned onto CD-ROM or [real-mode bootable hybrid-ISO filesystem](https://en.wikipedia.org/wiki/Hybrid_CD) disk-dumped onto USB flash memory.
 
 # System Configuration
-- networking setup
-- default iptables
-see [rc.tiny]()
+see [rc.tiny](src.html#gitweb.md):
+- IPv4 networking setup
+- [scrambled ssh](projects.html#scram.md)
+- [scrambled loopdev partitions](projects.html#scram.md)
 
