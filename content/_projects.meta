@@ -1,4 +1,4 @@
 TINYCMS_CONTENT_HANDLER=tinycms_default_content
 TINYCMS_PRETEXT_ITEM=""
 TINYCMS_NAVITEM_TOC="yes"
-TINYCMS_CONTENT_ITEMS="content/tinycms.md content/scram.md content/dlr.md content/nilfs.md"
+TINYCMS_CONTENT_ITEMS="content/tinycms.md content/scram.md content/dlr.md content/nilfs.md content/wxpolicy.md"

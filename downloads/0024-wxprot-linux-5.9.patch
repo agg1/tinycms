@@ -1,0 +1,2422 @@
+diff -Naur linux-5.9.16-gentoo.orig/arch/Kconfig linux-5.9.16-gentoo/arch/Kconfig
+--- linux-5.9.16-gentoo.orig/arch/Kconfig	2020-12-27 12:37:10.356060064 +0000
++++ linux-5.9.16-gentoo/arch/Kconfig	2020-12-27 12:49:18.951045383 +0000
+@@ -242,6 +242,12 @@
+ config ARCH_HAS_KEEPINITRD
+ 	bool
+ 
++config ARCH_HAS_LSM_PAGEFAULT
++	bool
++	help
++	  An architecture should select this if it supports
++	  "pagefault_handler" LSM hook.
++
+ # Select if arch has all set_memory_ro/rw/x/nx() functions in asm/cacheflush.h
+ config ARCH_HAS_SET_MEMORY
+ 	bool
+diff -Naur linux-5.9.16-gentoo.orig/arch/x86/Kconfig linux-5.9.16-gentoo/arch/x86/Kconfig
+--- linux-5.9.16-gentoo.orig/arch/x86/Kconfig	2020-12-27 12:37:10.366060134 +0000
++++ linux-5.9.16-gentoo/arch/x86/Kconfig	2020-12-27 12:49:18.951045383 +0000
+@@ -68,6 +68,7 @@
+ 	select ARCH_HAS_FORTIFY_SOURCE
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_HAS_KCOV			if X86_64 && STACK_VALIDATION
++	select ARCH_HAS_LSM_PAGEFAULT
+ 	select ARCH_HAS_MEM_ENCRYPT
+ 	select ARCH_HAS_MEMBARRIER_SYNC_CORE
+ 	select ARCH_HAS_NON_OVERLAPPING_ADDRESS_SPACE
+diff -Naur linux-5.9.16-gentoo.orig/arch/x86/mm/fault.c linux-5.9.16-gentoo/arch/x86/mm/fault.c
+--- linux-5.9.16-gentoo.orig/arch/x86/mm/fault.c	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/arch/x86/mm/fault.c	2020-12-27 12:49:18.951045383 +0000
+@@ -16,6 +16,7 @@
+ #include <linux/prefetch.h>		/* prefetchw			*/
+ #include <linux/context_tracking.h>	/* exception_enter(), ...	*/
+ #include <linux/uaccess.h>		/* faulthandler_disabled()	*/
++#include <linux/security.h>        /* security_pagefault_handler   */
+ #include <linux/efi.h>			/* efi_recover_from_page_fault()*/
+ #include <linux/mm_types.h>
+ 
+@@ -1273,6 +1274,11 @@
+ 			local_irq_enable();
+ 	}
+ 
++	if (unlikely(security_pagefault_handler(regs,
++						hw_error_code,
++						address)))
++		return;
++
+ 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
+ 
+ 	if (hw_error_code & X86_PF_WRITE)
+diff -Naur linux-5.9.16-gentoo.orig/fs/binfmt_elf.c linux-5.9.16-gentoo/fs/binfmt_elf.c
+--- linux-5.9.16-gentoo.orig/fs/binfmt_elf.c	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/fs/binfmt_elf.c	2020-12-27 12:49:18.951045383 +0000
+@@ -903,7 +903,8 @@
+ 	for (i = 0; i < elf_ex->e_phnum; i++, elf_ppnt++)
+ 		switch (elf_ppnt->p_type) {
+ 		case PT_GNU_STACK:
+-			if (elf_ppnt->p_flags & PF_X)
++			if (elf_ppnt->p_flags & PF_X &&
++			    !security_check_vmflags(VM_EXEC|VM_READ|VM_WRITE))
+ 				executable_stack = EXSTACK_ENABLE_X;
+ 			else
+ 				executable_stack = EXSTACK_DISABLE_X;
+diff -Naur linux-5.9.16-gentoo.orig/fs/binfmt_elf_fdpic.c linux-5.9.16-gentoo/fs/binfmt_elf_fdpic.c
+--- linux-5.9.16-gentoo.orig/fs/binfmt_elf_fdpic.c	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/fs/binfmt_elf_fdpic.c	2020-12-27 12:49:18.951045383 +0000
+@@ -163,7 +163,8 @@
+ 		if (phdr->p_type != PT_GNU_STACK)
+ 			continue;
+ 
+-		if (phdr->p_flags & PF_X)
++		if (phdr->p_flags & PF_X &&
++		    !security_check_vmflags(VM_EXEC|VM_READ|VM_WRITE))
+ 			params->flags |= ELF_FDPIC_FLAG_EXEC_STACK;
+ 		else
+ 			params->flags |= ELF_FDPIC_FLAG_NOEXEC_STACK;
+diff -Naur linux-5.9.16-gentoo.orig/fs/exec.c linux-5.9.16-gentoo/fs/exec.c
+--- linux-5.9.16-gentoo.orig/fs/exec.c	2020-12-27 12:37:10.386060275 +0000
++++ linux-5.9.16-gentoo/fs/exec.c	2020-12-27 12:49:18.951045383 +0000
+@@ -808,6 +808,10 @@
+ 	vm_flags |= mm->def_flags;
+ 	vm_flags |= VM_STACK_INCOMPLETE_SETUP;
+ 
++	ret = security_check_vmflags(vm_flags);
++	if (ret)
++		goto out_unlock;
++
+ 	ret = mprotect_fixup(vma, &prev, vma->vm_start, vma->vm_end,
+ 			vm_flags);
+ 	if (ret)
+diff -Naur linux-5.9.16-gentoo.orig/fs/proc/base.c linux-5.9.16-gentoo/fs/proc/base.c
+--- linux-5.9.16-gentoo.orig/fs/proc/base.c	2020-12-27 12:37:09.766055927 +0000
++++ linux-5.9.16-gentoo/fs/proc/base.c	2020-12-27 12:49:18.951045383 +0000
+@@ -2795,6 +2795,37 @@
+ LSM_DIR_OPS(apparmor);
+ #endif
+ 
++#ifdef CONFIG_SECURITY_WXPROT
++static const struct pid_entry wxprot_attr_dir_stuff[] = {
++	REG("wxprot", 0444, proc_pid_attr_operations),
++};
++
++static int proc_wxprot_attr_dir_readdir(struct file *file, struct dir_context *ctx)
++{
++	return proc_pident_readdir(file, ctx, wxprot_attr_dir_stuff, ARRAY_SIZE(wxprot_attr_dir_stuff));
++}
++
++static const struct file_operations proc_wxprot_attr_dir_ops = {
++	.read		= generic_read_dir,
++	.iterate_shared	= proc_wxprot_attr_dir_readdir,
++	.llseek		= generic_file_llseek,
++};
++
++static struct dentry *proc_wxprot_attr_dir_lookup(struct inode *dir,
++				struct dentry *dentry, unsigned int flags)
++{
++	return proc_pident_lookup(dir, dentry,
++				  wxprot_attr_dir_stuff,
++				  wxprot_attr_dir_stuff + ARRAY_SIZE(wxprot_attr_dir_stuff));
++};
++
++static const struct inode_operations proc_wxprot_attr_dir_inode_ops = {
++	.lookup		= proc_wxprot_attr_dir_lookup,
++	.getattr	= pid_getattr,
++	.setattr	= proc_setattr,
++};
++#endif /* CONFIG_SECURITY_WXPROT */
++
+ static const struct pid_entry attr_dir_stuff[] = {
+ 	ATTR(NULL, "current",		0666),
+ 	ATTR(NULL, "prev",		0444),
+@@ -2810,6 +2841,10 @@
+ 	DIR("apparmor",			0555,
+ 	    proc_apparmor_attr_dir_inode_ops, proc_apparmor_attr_dir_ops),
+ #endif
++#ifdef CONFIG_SECURITY_WXPROT
++	DIR("wxprot", 0555, proc_wxprot_attr_dir_inode_ops,
++				proc_wxprot_attr_dir_ops),
++#endif
+ };
+ 
+ static int proc_attr_dir_readdir(struct file *file, struct dir_context *ctx)
+diff -Naur linux-5.9.16-gentoo.orig/include/linux/cred.h linux-5.9.16-gentoo/include/linux/cred.h
+--- linux-5.9.16-gentoo.orig/include/linux/cred.h	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/include/linux/cred.h	2020-12-27 12:49:18.951045383 +0000
+@@ -142,6 +142,9 @@
+ #ifdef CONFIG_SECURITY
+ 	void		*security;	/* subjective LSM security */
+ #endif
++#ifdef CONFIG_SECURITY_WXPROT
++	void		*security_wxprot;
++#endif
+ 	struct user_struct *user;	/* real user ID subscription */
+ 	struct user_namespace *user_ns; /* user_ns the caps and keyrings are relative to. */
+ 	struct group_info *group_info;	/* supplementary groups for euid/fsgid */
+diff -Naur linux-5.9.16-gentoo.orig/include/linux/fs.h linux-5.9.16-gentoo/include/linux/fs.h
+--- linux-5.9.16-gentoo.orig/include/linux/fs.h	2020-12-27 12:37:10.386060275 +0000
++++ linux-5.9.16-gentoo/include/linux/fs.h	2020-12-27 12:49:18.961045453 +0000
+@@ -632,6 +632,10 @@
+ 	void			*i_security;
+ #endif
+ 
++#ifdef CONFIG_SECURITY_WXPROT
++	void			*security_wxprot;
++#endif
++
+ 	/* Stat data, not accessed from path walking */
+ 	unsigned long		i_ino;
+ 	/*
+diff -Naur linux-5.9.16-gentoo.orig/include/linux/ipc.h linux-5.9.16-gentoo/include/linux/ipc.h
+--- linux-5.9.16-gentoo.orig/include/linux/ipc.h	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/include/linux/ipc.h	2020-12-27 12:49:18.961045453 +0000
+@@ -21,6 +21,9 @@
+ 	umode_t		mode;
+ 	unsigned long	seq;
+ 	void		*security;
++#ifdef CONFIG_SECURITY_WXPROT
++	void		*security_wxprot;
++#endif
+ 
+ 	struct rhash_head khtnode;
+ 
+diff -Naur linux-5.9.16-gentoo.orig/include/linux/lsm_hook_defs.h linux-5.9.16-gentoo/include/linux/lsm_hook_defs.h
+--- linux-5.9.16-gentoo.orig/include/linux/lsm_hook_defs.h	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/include/linux/lsm_hook_defs.h	2020-12-27 12:49:18.961045453 +0000
+@@ -163,6 +163,8 @@
+ 	 unsigned long prot, unsigned long flags)
+ LSM_HOOK(int, 0, file_mprotect, struct vm_area_struct *vma,
+ 	 unsigned long reqprot, unsigned long prot)
++LSM_HOOK(int, 0, check_vmflags, vm_flags_t vmflags)
++LSM_HOOK(int, 0, pagefault_handler, struct pt_regs *regs, unsigned long error_code, unsigned long address)
+ LSM_HOOK(int, 0, file_lock, struct file *file, unsigned int cmd)
+ LSM_HOOK(int, 0, file_fcntl, struct file *file, unsigned int cmd,
+ 	 unsigned long arg)
+diff -Naur linux-5.9.16-gentoo.orig/include/linux/lsm_hooks.h linux-5.9.16-gentoo/include/linux/lsm_hooks.h
+--- linux-5.9.16-gentoo.orig/include/linux/lsm_hooks.h	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/include/linux/lsm_hooks.h	2020-12-27 12:49:18.961045453 +0000
+@@ -540,6 +540,19 @@
+  *	@reqprot contains the protection requested by the application.
+  *	@prot contains the protection that will be applied by the kernel.
+  *	Return 0 if permission is granted.
++ * @check_vmflags:
++ *	Check if the requested @vmflags are allowed.
++ *	@vmflags contains the requested vmflags.
++ *	Return 0 if the operation is allowed to continue otherwise return
++ *	the appropriate error code.
++ * @pagefault_handler:
++ *	Handle pagefaults on supported architectures, that is any architecture
++ *	which defines CONFIG_ARCH_HAS_LSM_PAGEFAULT.
++ *	@regs contains process' registers.
++ *	@error_code contains error code for the pagefault.
++ *	@address contains the address that caused the pagefault.
++ *	Return 0 to let the kernel handle the pagefault as usually, any other
++ *	value to let the process continue its execution.
+  * @file_lock:
+  *	Check permission before performing file locking operations.
+  *	Note the hook mediates both flock and fcntl style locks.
+diff -Naur linux-5.9.16-gentoo.orig/include/linux/security.h linux-5.9.16-gentoo/include/linux/security.h
+--- linux-5.9.16-gentoo.orig/include/linux/security.h	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/include/linux/security.h	2020-12-27 12:49:18.961045453 +0000
+@@ -369,6 +369,10 @@
+ int security_mmap_addr(unsigned long addr);
+ int security_file_mprotect(struct vm_area_struct *vma, unsigned long reqprot,
+ 			   unsigned long prot);
++int security_check_vmflags(vm_flags_t vmflags);
++int __maybe_unused security_pagefault_handler(struct pt_regs *regs,
++					      unsigned long error_code,
++					      unsigned long address);
+ int security_file_lock(struct file *file, unsigned int cmd);
+ int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg);
+ void security_file_set_fowner(struct file *file);
+@@ -934,6 +938,19 @@
+ {
+ 	return 0;
+ }
++
++static inline int security_check_vmflags(vm_flags_t vmflags)
++{
++	return 0;
++}
++
++static inline int __maybe_unused security_pagefault_handler(
++						struct pt_regs *regs,
++						unsigned long error_code,
++						unsigned long address)
++{
++	return 0;
++}
+ 
+ static inline int security_file_lock(struct file *file, unsigned int cmd)
+ {
+diff -Naur linux-5.9.16-gentoo.orig/mm/mmap.c linux-5.9.16-gentoo/mm/mmap.c
+--- linux-5.9.16-gentoo.orig/mm/mmap.c	2020-12-27 12:37:10.436060625 +0000
++++ linux-5.9.16-gentoo/mm/mmap.c	2020-12-27 12:49:18.961045453 +0000
+@@ -1378,6 +1378,7 @@
+ 	struct mm_struct *mm = current->mm;
+ 	vm_flags_t vm_flags;
+ 	int pkey = 0;
++	int error;
+ 
+ 	*populate = 0;
+ 
+@@ -1441,6 +1442,10 @@
+ 	vm_flags = calc_vm_prot_bits(prot, pkey) | calc_vm_flag_bits(flags) |
+ 			mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
+ 
++	error = security_check_vmflags(vm_flags);
++	if (error)
++		return error;
++
+ 	if (flags & MAP_LOCKED)
+ 		if (!can_do_mlock())
+ 			return -EPERM;
+@@ -3043,6 +3048,10 @@
+ 		return -EINVAL;
+ 	flags |= VM_DATA_DEFAULT_FLAGS | VM_ACCOUNT | mm->def_flags;
+ 
++	error = security_check_vmflags(flags);
++	if (error)
++		return error;
++
+ 	mapped_addr = get_unmapped_area(NULL, addr, len, 0, MAP_FIXED);
+ 	if (IS_ERR_VALUE(mapped_addr))
+ 		return mapped_addr;
+@@ -3447,6 +3456,10 @@
+ 	if (unlikely(vma == NULL))
+ 		return ERR_PTR(-ENOMEM);
+ 
++	ret = security_check_vmflags(vm_flags);
++	if (ret)
++		return ERR_PTR(ret);
++
+ 	vma->vm_start = addr;
+ 	vma->vm_end = addr + len;
+ 
+diff -Naur linux-5.9.16-gentoo.orig/security/Kconfig linux-5.9.16-gentoo/security/Kconfig
+--- linux-5.9.16-gentoo.orig/security/Kconfig	2020-12-27 12:37:10.456060765 +0000
++++ linux-5.9.16-gentoo/security/Kconfig	2020-12-27 12:49:18.961045453 +0000
+@@ -277,6 +277,8 @@
+ 
+ source "security/integrity/Kconfig"
+ 
++source "security/wxprot/Kconfig"
++
+ choice
+ 	prompt "First legacy 'major LSM' to be initialized"
+ 	default DEFAULT_SECURITY_SELINUX if SECURITY_SELINUX
+diff -Naur linux-5.9.16-gentoo.orig/security/Makefile linux-5.9.16-gentoo/security/Makefile
+--- linux-5.9.16-gentoo.orig/security/Makefile	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/security/Makefile	2020-12-27 12:49:18.961045453 +0000
+@@ -13,6 +13,7 @@
+ subdir-$(CONFIG_SECURITY_SAFESETID)    += safesetid
+ subdir-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown
+ subdir-$(CONFIG_BPF_LSM)		+= bpf
++subdir-$(CONFIG_SECURITY_WXPROT)	+= wxprot
+ 
+ # always enable default capabilities
+ obj-y					+= commoncap.o
+@@ -32,6 +33,7 @@
+ obj-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown/
+ obj-$(CONFIG_CGROUPS)			+= device_cgroup.o
+ obj-$(CONFIG_BPF_LSM)			+= bpf/
++obj-$(CONFIG_SECURITY_WXPROT)	+= wxprot/
+ 
+ # Object integrity file lists
+ subdir-$(CONFIG_INTEGRITY)		+= integrity
+diff -Naur linux-5.9.16-gentoo.orig/security/security.c linux-5.9.16-gentoo/security/security.c
+--- linux-5.9.16-gentoo.orig/security/security.c	2020-10-11 21:15:50.000000000 +0000
++++ linux-5.9.16-gentoo/security/security.c	2020-12-27 12:49:18.961045453 +0000
+@@ -1541,6 +1541,22 @@
+ 	return ima_file_mprotect(vma, prot);
+ }
+ 
++int security_check_vmflags(vm_flags_t vmflags)
++{
++	return call_int_hook(check_vmflags, 0, vmflags);
++}
++
++int __maybe_unused security_pagefault_handler(struct pt_regs *regs,
++					      unsigned long error_code,
++					      unsigned long address)
++{
++	return call_int_hook(pagefault_handler,
++			     0,
++			     regs,
++			     error_code,
++			     address);
++}
++
+ int security_file_lock(struct file *file, unsigned int cmd)
+ {
+ 	return call_int_hook(file_lock, 0, file, cmd);
+diff -Naur linux-5.9.16-gentoo.orig/security/wxprot/Kconfig linux-5.9.16-gentoo/security/wxprot/Kconfig
+--- linux-5.9.16-gentoo.orig/security/wxprot/Kconfig	1970-01-01 00:00:00.000000000 +0000
++++ linux-5.9.16-gentoo/security/wxprot/Kconfig	2020-12-27 12:49:18.961045453 +0000
+@@ -0,0 +1,50 @@
++config SECURITY_WXPROT
++	bool "WX Protection: W^X and W!->X protections"
++	default y
++	help
++	  WX Protections applied to user-space processes:
++	    - W^X memory restriction
++	    - W!->X (once writable never executable) mprotect restriction
++	    - Executable MMAP prevention
++
++	  If unsure, answer Y.
++
++choice
++	prompt "Default W^X and W!->X protections"
++	depends on SECURITY_WXPROT
++	default SECURITY_WXPROT_DEFAULT_FLAGS_ALL_COMPLAIN_VERBOSE
++
++	help
++	  Default WX protection if no rule exception is configured.
++
++	config SECURITY_WXPROT_DEFAULT_FLAGS_ALL_COMPLAIN_VERBOSE
++		bool "Protections enabled but not enforced."
++		help
++		  All protections complain mode: 0x7f
++		  Violations are logged but not prevented by wxprot.
++
++	config SECURITY_WXPROT_DEFAULT_FLAGS_ALL_ENFORCE_VERBOSE
++		bool "Full protection, verbose."
++		help
++		  All protections enforced: 0x6f
++		  Violations are logged.
++
++	config SECURITY_WXPROT_DEFAULT_FLAGS_ALL_ENFORCE
++		bool "Full protection, quiet."
++		help
++		  All protections except "Executable MMAP": 0x0f
++		  Violations are logged.
++
++	config SECURITY_WXPROT_DEFAULT_FLAGS_NONE
++		bool "No protection at all."
++		help
++		  Protection disabled: 0x00
++
++endchoice
++
++config SECURITY_WXPROT_DEFAULT_FLAGS
++	hex
++	default "0x7f" if SECURITY_WXPROT_DEFAULT_FLAGS_ALL_COMPLAIN_VERBOSE
++	default "0x6f" if SECURITY_WXPROT_DEFAULT_FLAGS_ALL_ENFORCE_VERBOSE
++	default "0x0f" if SECURITY_WXPROT_DEFAULT_FLAGS_ALL_ENFORCE
++	default "0x00" if SECURITY_WXPROT_DEFAULT_FLAGS_NONE
+diff -Naur linux-5.9.16-gentoo.orig/security/wxprot/Makefile linux-5.9.16-gentoo/security/wxprot/Makefile
+--- linux-5.9.16-gentoo.orig/security/wxprot/Makefile	1970-01-01 00:00:00.000000000 +0000
++++ linux-5.9.16-gentoo/security/wxprot/Makefile	2020-12-27 12:49:18.961045453 +0000
+@@ -0,0 +1,2 @@
++obj-$(CONFIG_SECURITY_WXPROT) := wxprot.o
++wxprot-$(CONFIG_SECURITY_WXPROT) += main.o securityfs.o utils.o wxprot_data.o
+diff -Naur linux-5.9.16-gentoo.orig/security/wxprot/include/securityfs.h linux-5.9.16-gentoo/security/wxprot/include/securityfs.h
+--- linux-5.9.16-gentoo.orig/security/wxprot/include/securityfs.h	1970-01-01 00:00:00.000000000 +0000
++++ linux-5.9.16-gentoo/security/wxprot/include/securityfs.h	2020-12-27 12:49:18.961045453 +0000
+@@ -0,0 +1,62 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++/*
++ * WXPROT Linux Security Module
++ *
++ * Derived from Salvatore Mesoraca <s.mesoraca16@gmail.com>
++ * author: aggi
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2, as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#ifndef __WXPROT_SECURITYFS_H
++#define __WXPROT_SECURITYFS_H
++
++#include <linux/init.h>
++
++#define WXPROT_SUBTREE_NN_LEN 24
++#define WXPROT_CONFIG_HASH_LEN 20
++
++struct wxprot_secfs_node;
++
++int wxprot_secfs_init(void) __init;
++int wxprot_secfs_subtree_register(const char *subtree_name,
++				const struct wxprot_secfs_node *nodes,
++				size_t size) __init;
++
++enum wxprot_secfs_node_type {
++	WXPROT_SECFS_BOOL,
++	WXPROT_SECFS_READONLY_INT,
++	WXPROT_SECFS_CONFIG_LOAD,
++	WXPROT_SECFS_CONFIG_DUMP,
++	WXPROT_SECFS_CONFIG_HASH,
++};
++
++struct wxprot_secfs_node {
++	const enum wxprot_secfs_node_type type;
++	void *const data;
++	const size_t dir_contents_len;
++	const char name[WXPROT_SUBTREE_NN_LEN];
++};
++
++struct wxprot_secfs_fptrs {
++	int (*const load)(const char *, size_t);
++	ssize_t (*const dump)(char **);
++	int (*const hash)(char **);
++};
++
++struct wxprot_secfs_bool_flag {
++	const char notice_line[WXPROT_SUBTREE_NN_LEN];
++	bool *const flag;
++};
++
++#define DEFINE_WXPROT_SECFS_BOOL_FLAG(NAME, VAR)		\
++const struct wxprot_secfs_bool_flag NAME = {		\
++	.notice_line = #VAR,				\
++	.flag = &VAR,					\
++}
++
++#endif /* __WXPROT_SECURITYFS_H */
+diff -Naur linux-5.9.16-gentoo.orig/security/wxprot/include/utils.h linux-5.9.16-gentoo/security/wxprot/include/utils.h
+--- linux-5.9.16-gentoo.orig/security/wxprot/include/utils.h	1970-01-01 00:00:00.000000000 +0000
++++ linux-5.9.16-gentoo/security/wxprot/include/utils.h	2020-12-27 12:49:18.961045453 +0000
+@@ -0,0 +1,81 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++/*
++ * WXPROT Linux Security Module
++ *
++ * Derived from Salvatore Mesoraca <s.mesoraca16@gmail.com>
++ * author: aggi
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2, as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#ifndef __WXPROT_UTILS_H
++#define __WXPROT_UTILS_H
++
++#include <linux/kref.h>
++#include <linux/rcupdate.h>
++#include <linux/spinlock.h>
++
++char *get_absolute_path(const struct path *spath, char **buf);
++char *get_current_path(char **buf);
++
++static inline void release_entry(struct kref *ref)
++{
++	/* All work is done after the return from kref_put(). */
++}
++
++
++/*
++ * The following macros must be used to access WXPROT configuration
++ * structures.
++ * They are thread-safe under the assumption that a configuration
++ * won't ever be deleted but just replaced using WXPROT_CONFIG_REPLACE,
++ * possibly using an empty configuration.
++ * i.e. every call to WXPROT_CONFIG_PUT *must* be preceded by a matching
++ * WXPROT_CONFIG_GET invocation.
++ */
++
++#define WXPROT_CONFIG_GET_RCU(DEST, CONFIG) do {	\
++	rcu_read_lock();			\
++	DEST = rcu_dereference(CONFIG);		\
++} while (0)
++
++#define WXPROT_CONFIG_PUT_RCU(DATA) do {		\
++	rcu_read_unlock();			\
++	DATA = NULL;				\
++} while (0)
++
++#define WXPROT_CONFIG_GET(DEST, CONFIG) do {				\
++	rcu_read_lock();						\
++	do {								\
++		DEST = rcu_dereference(CONFIG);				\
++	} while (DEST && !kref_get_unless_zero(&DEST->refcount));	\
++	rcu_read_unlock();						\
++} while (0)
++
++#define WXPROT_CONFIG_PUT(DATA, FREE) do {		\
++	if (kref_put(&DATA->refcount, release_entry)) {	\
++		synchronize_rcu();			\
++		FREE(DATA);				\
++	}						\
++	DATA = NULL;					\
++} while (0)
++
++#define WXPROT_CONFIG_REPLACE(CONFIG, NEW, FREE, LOCK) do {	\
++	typeof(NEW) tmp;					\
++	spin_lock(LOCK);					\
++	tmp = rcu_dereference_protected(CONFIG,			\
++					lockdep_is_held(LOCK));	\
++	rcu_assign_pointer(CONFIG, NEW);			\
++	if (kref_put(&tmp->refcount, release_entry)) {		\
++		spin_unlock(LOCK);				\
++		synchronize_rcu();				\
++		FREE(tmp);					\
++	} else							\
++		spin_unlock(LOCK);				\
++} while (0)
++
++#endif /* __WXPROT_UTILS_H */
+diff -Naur linux-5.9.16-gentoo.orig/security/wxprot/include/wxprot.h linux-5.9.16-gentoo/security/wxprot/include/wxprot.h
+--- linux-5.9.16-gentoo.orig/security/wxprot/include/wxprot.h	1970-01-01 00:00:00.000000000 +0000
++++ linux-5.9.16-gentoo/security/wxprot/include/wxprot.h	2020-12-27 12:49:18.961045453 +0000
+@@ -0,0 +1,25 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++/*
++ * WXPROT Linux Security Module
++ *
++ * Derived from Salvatore Mesoraca <s.mesoraca16@gmail.com>
++ * author: aggi
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2, as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#ifndef __WXPROT_H
++#define __WXPROT_H
++
++#include <linux/types.h>
++#include <uapi/linux/limits.h>
++
++#define WXPROT_PATH_MAX PATH_MAX
++
++extern bool wxprot_config_locked __read_mostly;
++
++#endif /* __WXPROT_H */
+diff -Naur linux-5.9.16-gentoo.orig/security/wxprot/include/wxprot_data.h linux-5.9.16-gentoo/security/wxprot/include/wxprot_data.h
+--- linux-5.9.16-gentoo.orig/security/wxprot/include/wxprot_data.h	1970-01-01 00:00:00.000000000 +0000
++++ linux-5.9.16-gentoo/security/wxprot/include/wxprot_data.h	2020-12-27 12:49:18.961045453 +0000
+@@ -0,0 +1,74 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++/*
++ * WXPROT Linux Security Module
++ *
++ * Derived from Salvatore Mesoraca <s.mesoraca16@gmail.com>
++ * author: aggi
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2, as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#ifndef __WXPROT_DATA_H
++#define __WXPROT_DATA_H
++
++#include <linux/fs.h>
++#include <linux/init.h>
++#include <linux/spinlock.h>
++
++int wxprot_data_init(void) __init;
++
++struct wxprot_data {
++	unsigned long	relro_page;
++	struct file	*relro_file;
++	u16		wxp_flags;
++	u16		execve_flags;
++	bool	relro_page_found;
++	bool	mmap_blocked;
++};
++
++struct wxprot_shm_data {
++	bool		no_exec;
++	bool		no_write;
++	spinlock_t	lock;
++};
++
++struct wxprot_inode_data {
++	struct task_struct *task;
++};
++
++#define get_wxprot_data_leftvalue(X) ((X)->security_wxprot)
++#define get_wxprot_data(X) ((struct wxprot_data *) (X)->security_wxprot)
++#define get_current_wxprot_data() get_wxprot_data(current_cred())
++
++#define get_wxp_flags(X) (get_wxprot_data((X))->wxp_flags)
++#define get_current_wxp_flags() get_wxp_flags(current_cred())
++
++#define get_wxprot_execve_flags(X) (get_wxprot_data((X))->execve_flags)
++#define get_current_wxprot_execve_flags() get_wxprot_execve_flags(current_cred())
++
++#define get_wxprot_relro_page(X) (get_wxprot_data((X))->relro_page)
++#define get_current_wxprot_relro_page() get_wxprot_relro_page(current_cred())
++
++#define get_wxprot_relro_file(X) (get_wxprot_data((X))->relro_file)
++#define get_current_wxprot_relro_file() get_wxprot_relro_file(current_cred())
++
++#define get_wxprot_relro_page_found(X) (get_wxprot_data((X))->relro_page_found)
++#define get_current_wxprot_relro_page_found() get_wxprot_relro_page_found(current_cred())
++
++#define get_wxprot_mmap_blocked(X) (get_wxprot_data((X))->mmap_blocked)
++#define get_current_wxprot_mmap_blocked() get_wxprot_mmap_blocked(current_cred())
++
++#define get_wxprot_shm_data(X) ((struct wxprot_shm_data *) (X)->security_wxprot)
++#define get_wxprot_shm_no_exec(X) (get_wxprot_shm_data((X))->no_exec)
++#define get_wxprot_shm_no_write(X) (get_wxprot_shm_data((X))->no_write)
++#define lock_wxprot_shm(X) (spin_lock(&get_wxprot_shm_data((X))->lock))
++#define unlock_wxprot_shm(X) (spin_unlock(&get_wxprot_shm_data((X))->lock))
++
++#define get_wxprot_inode_data(X) ((struct wxprot_inode_data *) (X)->security_wxprot)
++#define get_wxprot_inode_task(X) (get_wxprot_inode_data((X))->task)
++
++#endif
+diff -Naur linux-5.9.16-gentoo.orig/security/wxprot/main.c linux-5.9.16-gentoo/security/wxprot/main.c
+--- linux-5.9.16-gentoo.orig/security/wxprot/main.c	1970-01-01 00:00:00.000000000 +0000
++++ linux-5.9.16-gentoo/security/wxprot/main.c	2020-12-27 12:55:49.914707311 +0000
+@@ -0,0 +1,949 @@
++// SPDX-License-Identifier: GPL-2.0
++
++/*
++ * WXPROT Linux Security Module
++ *
++ * Derived from Salvatore Mesoraca <s.mesoraca16@gmail.com>
++ * author: aggi
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2, as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#include <linux/binfmts.h>
++#include <linux/capability.h>
++#include <linux/cred.h>
++#include <linux/elf.h>
++#include <linux/kref.h>
++#include <linux/kernel.h>
++#include <linux/printk.h>
++#include <linux/module.h>
++#include <linux/lsm_hooks.h>
++#include <linux/mm.h>
++#include <linux/mman.h>
++#include <linux/module.h>
++#include <linux/mount.h>
++#include <linux/printk.h>
++#include <linux/ratelimit.h>
++#include <linux/sched/mm.h>
++#include <linux/sched/task.h>
++#include <linux/spinlock.h>
++
++#include "include/wxprot.h"
++#include "include/wxprot_data.h"
++#include "include/utils.h"
++#include "include/securityfs.h"
++
++#define WXP_HEAP		0x0001
++#define WXP_STACK		0x0002
++#define WXP_OTHER		0x0004
++#define WXP_WXORX		0x0008
++#define WXP_COMPLAIN	0x0010
++#define WXP_VERBOSE		0x0020
++#define WXP_MMAP		0x0040
++#define WXP_TRANSFER	0x0200
++#define WXP_NONE		0x0000
++#define WXP_MPROTECT	(WXP_HEAP	| \
++						WXP_STACK	| \
++						WXP_OTHER)
++#define __WXP_ALL		(WXP_MPROTECT	| \
++						WXP_MMAP		| \
++						WXP_WXORX		| \
++						WXP_COMPLAIN	| \
++						WXP_VERBOSE)
++#define WXP_ALL		__WXP_ALL
++
++bool wxprot_config_locked __read_mostly;
++
++static DEFINE_WXPROT_SECFS_BOOL_FLAG(wxprot_config_locked_data, wxprot_config_locked);
++
++static int param_set_senabled(const char *val, const struct kernel_param *kp)
++{
++	if (!val)
++		return 0;
++	if (strtobool(val, kp->arg))
++		return -EINVAL;
++	//config must by locked when WXPROT is disabled at boot and unlocked when it's enabled
++	wxprot_config_locked = !(*(bool *) kp->arg);
++	return 0;
++}
++
++static struct kernel_param_ops param_ops_senabled = {
++	.set = param_set_senabled,
++};
++
++#define param_check_senabled(name, p) __param_check(name, p, bool)
++
++struct wxprot_rule {
++	char *path;
++	u16 flags;
++	bool exact;
++};
++
++struct wxprot_config_container {
++	u32 rules_size;
++	struct wxprot_rule *rules;
++	size_t buf_len;
++	struct kref refcount;
++	char hash[WXPROT_CONFIG_HASH_LEN];
++};
++
++static struct wxprot_config_container __rcu *wxprot_config;
++
++//static bool enabled __ro_after_init = true;
++static DEFINE_SPINLOCK(wxprot_config_lock);
++
++static u16 default_flags __ro_after_init = CONFIG_SECURITY_WXPROT_DEFAULT_FLAGS;
++
++static void pr_wxp(char *msg)
++{
++	char *buf, *path;
++
++	path = get_current_path(&buf);
++	pr_notice_ratelimited("WXP: %s in '%s' (%d).\n",
++			      msg, path, current->pid);
++	kvfree(buf);
++}
++
++/**
++ * are_flags_valid - check whether the given combination of flags is valid
++ * @flags: the flags to be checked
++ *
++ * Returns true if flags are valid, false otherwise.
++ *
++ * Rules checked:
++ *   - Unused bits must be set to 0.
++ *   - Any feature in the "MPROTECT" group require "WXORX".
++ *   - "COMPLAIN" and "VERBOSE" can only be used if some other feature is
++ *     enabled.
++ *   - Trampoline emulation can only be used when all "MPROTECT"
++ *     features are active.
++ *   - "MMAP" protection requires WXP_OTHER
++ */
++static bool are_flags_valid(u16 flags)
++{
++	flags &= ~WXP_TRANSFER;
++	if (unlikely((flags & WXP_ALL) != flags))
++		return false;
++	if (unlikely(flags & WXP_MPROTECT && !(flags & WXP_WXORX)))
++		return false;
++	if (unlikely(flags & (WXP_COMPLAIN | WXP_VERBOSE) && !(flags & (WXP_MPROTECT | WXP_WXORX | WXP_MMAP))))
++		return false;
++	if (unlikely(flags & WXP_MMAP && !(flags & WXP_OTHER)))
++		return false;
++	return true;
++}
++
++//module_param(enabled, bool, 0);
++//MODULE_PARM_DESC(enabled, "Enable WX Protection at boot time.");
++
++static int param_set_wxpflags(const char *val, const struct kernel_param *kp)
++{
++	u16 flags;
++
++	if (!val || kstrtou16(val, 0, &flags) != 0 || !are_flags_valid(flags))
++		return -EINVAL;
++	*(u16 *) kp->arg = flags;
++	return 0;
++}
++
++static struct kernel_param_ops param_ops_wxpflags = {
++	.set = param_set_wxpflags,
++};
++
++#define param_check_wxpflags(name, p) __param_check(name, p, u16)
++
++module_param_named(default_flags, default_flags, wxpflags, 0);
++MODULE_PARM_DESC(default_flags, "Set WX Protection flags at boot time.");
++
++// MMAP exec restriction
++#define PT_GNU_RELRO (PT_LOOS + 0x474e552)
++
++union elfh {
++	struct elf32_hdr c32;
++	struct elf64_hdr c64;
++};
++
++union elfp {
++	struct elf32_phdr c32;
++	struct elf64_phdr c64;
++};
++
++#define find_relro_section(ELFH, ELFP, FILE, RELRO, FOUND) do {		\
++	unsigned long i;						\
++	int _tmp;							\
++	loff_t _pos = 0;						\
++	if (ELFH.e_type == ET_DYN || ELFH.e_type == ET_EXEC) {		\
++		for (i = 0; i < ELFH.e_phnum; ++i) {			\
++			_pos = ELFH.e_phoff + i*sizeof(ELFP);		\
++			_tmp = kernel_read(FILE, &ELFP, sizeof(ELFP),	\
++					   &_pos);			\
++			if (_tmp != sizeof(ELFP))			\
++				break;					\
++			if (ELFP.p_type == PT_GNU_RELRO) {		\
++				RELRO = ELFP.p_offset >> PAGE_SHIFT;	\
++				FOUND = true;				\
++				break;					\
++			}						\
++		}							\
++	}								\
++} while (0)
++
++static int set_relro_page(struct linux_binprm *bprm)
++{
++	union elfh elf_h;
++	union elfp elf_p;
++	unsigned long relro_page = 0;
++	bool relro_page_found = false;
++	int ret;
++	loff_t pos = 0;
++
++	ret = kernel_read(bprm->file, &elf_h, sizeof(elf_h), &pos);
++	if (ret == sizeof(elf_h) &&
++	    strncmp(elf_h.c32.e_ident, ELFMAG, SELFMAG) == 0) {
++		if (elf_h.c32.e_ident[EI_CLASS] == ELFCLASS32) {
++			find_relro_section(elf_h.c32,
++					   elf_p.c32,
++					   bprm->file,
++					   relro_page,
++					   relro_page_found);
++		} else if (IS_ENABLED(CONFIG_64BIT) &&
++			   elf_h.c64.e_ident[EI_CLASS] == ELFCLASS64) {
++			find_relro_section(elf_h.c64,
++					   elf_p.c64,
++					   bprm->file,
++					   relro_page,
++					   relro_page_found);
++		}
++	} else
++		return 2; /* It isn't an ELF */
++
++	if (relro_page_found) {
++		get_wxprot_relro_page(bprm->cred) = relro_page;
++		get_wxprot_relro_page_found(bprm->cred) = relro_page_found;
++		get_wxprot_relro_file(bprm->cred) = bprm->file;
++		return 0;
++	} else
++		return 1; /* It's an ELF without a RELRO section */
++}
++
++static inline int is_relro_page(const struct vm_area_struct *vma)
++{
++	if (get_current_wxprot_relro_page_found() &&
++	    get_current_wxprot_relro_page() == vma->vm_pgoff &&
++	    get_current_wxprot_relro_file() == vma->vm_file)
++		return 1;
++	return 0;
++}
++
++// LSM hooks
++static int wxprot_bprm_set_creds(struct linux_binprm *bprm)
++{
++	int i;
++	struct wxprot_config_container *c;
++	u16 wxp_flags = default_flags;
++	char *buf = NULL;
++	char *path = NULL;
++	struct cred *current_new;
++
++	wxp_flags = get_wxp_flags(bprm->cred);
++	get_wxprot_mmap_blocked(bprm->cred) = false;
++	get_wxprot_relro_page_found(bprm->cred) = false;
++	get_wxprot_relro_page(bprm->cred) = 0;
++	get_wxprot_relro_file(bprm->cred) = NULL;
++	get_wxp_flags(bprm->cred) = WXP_NONE;
++	get_wxprot_execve_flags(bprm->cred) = WXP_NONE;
++
++	//if (!enabled)
++	//	return 0;
++
++	// WXP_TRANSFER parent inherit flags to child
++	if (!(wxp_flags & WXP_TRANSFER)) {
++		wxp_flags = default_flags;
++		path = get_absolute_path(&bprm->file->f_path, &buf);
++		if (IS_ERR(path)) {
++			path = (char *) bprm->interp;
++			if (PTR_ERR(path) == -ENAMETOOLONG)
++				pr_warn_ratelimited("WXP: path too long for '%s'. Default flags will be used.\n",
++						path);
++			else
++				pr_warn_ratelimited("WXP: can't find path for '%s'. Default flags will be used.\n",
++						path);
++			goto skip_flags;
++		}
++		WXPROT_CONFIG_GET_RCU(c, wxprot_config);
++		for (i = 0; i < c->rules_size; ++i) {
++			if ((c->rules[i].exact &&
++			     strcmp(c->rules[i].path, path) == 0) ||
++			    (!c->rules[i].exact &&
++			     strncmp(c->rules[i].path, path,
++				     strlen(c->rules[i].path)) == 0)) {
++				wxp_flags = c->rules[i].flags;
++				/* most specific path always come first */
++				break;
++			}
++		}
++		WXPROT_CONFIG_PUT_RCU(c);
++	} else
++		path = (char *) bprm->interp;
++
++skip_flags:
++	i = set_relro_page(bprm);
++	/*
++	 * i != 0 no relro segment
++	 * i == 1 file wasn't an ELF
++	 *
++	 * disable WXP_MMAP when the file is missing RELRO segment
++	 * verbosely report this case only if the file was an ELF.
++	 */
++	if (i != 0) {
++		if (wxp_flags & WXP_VERBOSE &&
++		    wxp_flags & WXP_MMAP &&
++		    i == 1)
++			pr_notice_ratelimited("WXP: failed to find RELRO section in '%s'.\n",
++					      path);
++		wxp_flags &= ~WXP_MMAP;
++	}
++	kvfree(buf);
++	get_wxp_flags(bprm->cred) = wxp_flags;
++
++	/*
++	 * Set the flags to be used for validation
++	 * during the execve and discard WXP_MMAP:
++	 * it doesn't make sense to prevent executable
++	 * mmap during execve.
++	 */
++	current_new = prepare_creds();
++	if (unlikely(current_new == NULL))
++		return -ENOMEM;
++	get_wxprot_execve_flags(current_new) = wxp_flags & ~WXP_MMAP;
++	commit_creds(current_new);
++
++	return 0;
++}
++
++#define wxprot_warn_or_return(err, msg) do {		\
++	if ((wxp_flags & WXP_VERBOSE))	\
++		pr_wxp(msg);				\
++	if (!(wxp_flags & WXP_COMPLAIN))	\
++		return -err;				\
++} while (0)
++
++#define wxprot_warn_or_goto(label, msg) do {		\
++	if ((wxp_flags & WXP_VERBOSE))	\
++		pr_wxp(msg);				\
++	if (!(wxp_flags & WXP_COMPLAIN))	\
++		goto label;				\
++} while (0)
++
++static int wxprot_check_vmflags(vm_flags_t vm_flags)
++{
++	u16 wxp_flags;
++
++	//if (!enabled)
++	//	return 0;
++
++	/*
++	 * Memory allocations done during an execve should be
++	 * checked against the rules of the new executable,
++	 * instead of those of the current one.
++	 */
++	if (current->in_execve)
++		wxp_flags = get_current_wxprot_execve_flags();
++	else
++		wxp_flags = get_current_wxp_flags();
++
++	/*
++	 * Be quiet when using security_check_vmflags to decide
++	 * what to do with a PT_GNU_STACK header
++	 */
++	if (current->in_execve && vm_flags == (VM_EXEC|VM_READ|VM_WRITE))
++		wxp_flags &= ~WXP_VERBOSE;
++
++	/*
++	 * If "W xor X" is active for the current thread
++	 * this function must not allow new allocations that
++	 * have both the VM_WRITE and the VM_EXEC flags.
++	 */
++	if (unlikely(wxp_flags & WXP_WXORX &&
++		     vm_flags & VM_WRITE &&
++		     vm_flags & VM_EXEC))
++		wxprot_warn_or_return(EPERM, "W^X");
++	/*
++	 * When the "MMAP" protection is on and shared libraries have
++	 * been already loaded (i.e. get_current_wxprot_mmap_blocked
++	 * returns true), this function must not allow:
++	 *    - new executable allocations
++	 *    - new non-executable allocations that may become
++	 *      executable bypassing the "MPROTECT" restriction;
++	 *      the "MPROTECT" protection will prevent a non-executable
++	 *      area to became executable only if it has the
++	 *      "VM_MAYWRITE" flag on.
++	 */
++	if (unlikely(wxp_flags & WXP_MMAP &&
++		     (vm_flags & VM_EXEC ||
++		      (!(vm_flags & VM_MAYWRITE) && (vm_flags & VM_MAYEXEC))) &&
++		     get_current_wxprot_mmap_blocked()))
++		wxprot_warn_or_return(EPERM, "executable mmap");
++
++	return 0;
++}
++
++static int wxprot_shm_shmat(struct kern_ipc_perm *shp,
++			  char __user *shmaddr,
++			  int shmflg)
++{
++	int block = 0;
++	u16 wxp_flags;
++	char buf[TASK_COMM_LEN];
++
++	//if (!enabled)
++	//	return 0;
++
++	wxp_flags = get_current_wxp_flags();
++
++	/*
++	 * Allow executable mappings if and only if this shm
++	 * was never attached as writable.
++	 *
++	 * Allow writable mappings if and only if this shm
++	 * was never attached as executable.
++	 *
++	 * We don't need to handle the case in which this
++	 * shm is attached as both writable and executable:
++	 * wxprot_check_vmflags takes care of that.
++	 */
++	if (wxp_flags & WXP_OTHER) {
++		if (shmflg & SHM_EXEC && shmflg & SHM_RDONLY) {
++			lock_wxprot_shm(shp);
++			if (unlikely(get_wxprot_shm_no_exec(shp)))
++				block = 1;
++			else
++				get_wxprot_shm_no_write(shp) = true;
++			unlock_wxprot_shm(shp);
++		} else if (!(shmflg & (SHM_EXEC | SHM_RDONLY))) {
++			lock_wxprot_shm(shp);
++			if (unlikely(get_wxprot_shm_no_write(shp)))
++				block = 2;
++			else
++				get_wxprot_shm_no_exec(shp) = true;
++			unlock_wxprot_shm(shp);
++		}
++	}
++
++	if ((wxp_flags & WXP_VERBOSE)) {
++		if (unlikely(block)) {
++			get_task_comm(buf, current);
++			if (block == 1)
++				pr_notice_ratelimited("WXP: executable SHM in '%s' (%d).\n",
++						      buf, current->pid);
++			else if (block == 2)
++				pr_notice_ratelimited("WXP: writable SHM in '%s' (%d).\n",
++						      buf, current->pid);
++		}
++	}
++	if (unlikely(block) && !(wxp_flags & WXP_COMPLAIN))
++		return -EACCES;
++	return 0;
++}
++
++static int wxprot_file_mprotect(struct vm_area_struct *vma,
++				unsigned long reqprot,
++				unsigned long prot)
++{
++	u16 wxp_flags;
++
++	//if (!enabled)
++	//	return 0;
++
++	if (current->in_execve)
++		wxp_flags = get_current_wxprot_execve_flags();
++	else
++		wxp_flags = get_current_wxp_flags();
++
++	/*
++	 * vmas that may have been writable at some time in the past
++	 * (i.e. have the VM_MAYWRITE flag on) shouldn't be allowed
++	 * to be marked executable, unless they already are.
++	 */
++	if (unlikely(wxp_flags & WXP_MPROTECT &&
++		     prot & PROT_EXEC &&
++		     !(vma->vm_flags & VM_EXEC) &&
++		     vma->vm_flags & VM_MAYWRITE)) {
++		/*
++		 * If every MPROTECT flag is on and verbose reporting
++		 * isn't needed, skip checking where the vma points to.
++		 * Otherwise check if it points to a file mapping,
++		 * to heap, to stack or to anywhere else.
++		 */
++		if ((wxp_flags & WXP_MPROTECT) == WXP_MPROTECT &&
++		    !(wxp_flags & WXP_COMPLAIN) &&
++		    !(wxp_flags & WXP_VERBOSE))
++			return -EACCES;
++		else if (vma->vm_file) {
++			if (wxp_flags & WXP_OTHER)
++				wxprot_warn_or_return(EACCES,
++						    "mprotect on file mmap");
++		} else if (vma->vm_start >= vma->vm_mm->start_brk &&
++			vma->vm_end <= vma->vm_mm->brk) {
++			if (wxp_flags & WXP_HEAP)
++				wxprot_warn_or_return(EACCES,
++						    "mprotect on heap");
++		} else if ((vma->vm_start <= vma->vm_mm->start_stack &&
++			    vma->vm_end >= vma->vm_mm->start_stack) ||
++			   vma_is_stack_for_current(vma)) {
++			if (wxp_flags & WXP_STACK)
++				wxprot_warn_or_return(EACCES,
++						    "mprotect on stack");
++		} else if (wxp_flags & WXP_OTHER)
++			wxprot_warn_or_return(EACCES,
++					    "mprotect on anon mmap");
++	}
++
++	/*
++	 * If "W xor X" is active for the current thread
++	 * VM_EXEC and VM_WRITE can't be turned on at
++	 * the same time, unless they already are.
++	 */
++	if (unlikely(wxp_flags & WXP_WXORX &&
++		     prot & PROT_EXEC &&
++		     prot & PROT_WRITE &&
++		     (!(vma->vm_flags & VM_EXEC) ||
++		      !(vma->vm_flags & VM_WRITE))))
++		wxprot_warn_or_return(EACCES, "mprotect W^X");
++
++	/*
++	 * If the dynamic loader marks the "relro section" as
++	 * read-only then it has finished loading shared libraries
++	 * and, if the WXP_MMAP flag is on, new executable
++	 * mmaps will be blocked from now on.
++	 */
++	if (unlikely(vma->vm_flags & VM_WRITE &&
++		     !(prot & PROT_WRITE) &&
++		     is_relro_page(vma)))
++		get_current_wxprot_mmap_blocked() = true;
++
++	return 0;
++}
++
++static int wxprot_file_open(struct file *file)
++{
++	struct task_struct *t;
++	struct mm_struct *mm;
++	u16 wxp_flags = get_current_wxp_flags();
++
++	/*
++	 * Prevent write access to /proc/.../mem
++	 * if it operates on the mm_struct of the
++	 * current process: it could be used to
++	 * bypass W^X.
++	 */
++	if (!(wxp_flags & WXP_WXORX) || !(file->f_mode & FMODE_WRITE))
++		return 0;
++
++	t = get_wxprot_inode_task(file_inode(file));
++	if (unlikely(t != NULL && strcmp(file->f_path.dentry->d_name.name, "mem") == 0)) {
++		get_task_struct(t);
++		mm = get_task_mm(t);
++		put_task_struct(t);
++		if (unlikely(mm == current->mm))
++			wxprot_warn_or_goto(error, "write access to /proc/*/mem");
++		mmput(mm);
++	}
++	return 0;
++error:
++	mmput(mm);
++	return -EACCES;
++}
++
++static int wxprot_getprocattr(struct task_struct *p, char *name, char **value)
++{
++	int ret;
++	u16 flags;
++	char *buf;
++
++	ret = -EINVAL;
++	if (strcmp(name, "wxprot") != 0)
++		goto out;
++
++	ret = -EACCES;
++	if (unlikely(current != p &&
++		     !capable(CAP_MAC_ADMIN)))
++		goto out;
++
++	ret = -ENOMEM;
++	buf = kzalloc(8, GFP_KERNEL);
++	if (unlikely(buf == NULL))
++		goto out;
++
++	//if (!enabled) {
++	//	flags = 0x0;
++	//} else {
++		rcu_read_lock();
++		flags = get_wxp_flags(__task_cred(p));
++		rcu_read_unlock();
++	//}
++
++	snprintf(buf, 8, "0x%04x\n", flags);
++	ret = strlen(buf);
++	*value = buf;
++
++out:
++	return ret;
++}
++
++static int wxprot_setprocattr(const char *name, void *value, size_t size)
++{
++	int ret;
++	struct cred *new = prepare_creds();
++	u16 cur_flags;
++	u16 req_flags;
++	char *buf = NULL;
++
++	ret = -EINVAL;
++	//if (!enabled)
++	//	goto error;
++	if (unlikely(new == NULL))
++		return -ENOMEM;
++	if (strcmp(name, "wxprot") != 0)
++		goto error;
++	if (unlikely(value == NULL || size == 0 || size > 7))
++		goto error;
++	ret = -ENOMEM;
++	buf = kmalloc(size+1, GFP_KERNEL);
++	if (unlikely(buf == NULL))
++		goto error;
++	buf[size] = '\0';
++	memcpy(buf, value, size);
++	ret = -EINVAL;
++	if (unlikely(strlen(buf) != size))
++		goto error;
++	if (unlikely(kstrtou16(buf, 0, &req_flags) != 0))
++		goto error;
++	
++	if (unlikely(!get_current_wxprot_relro_page_found() &&
++		     req_flags & WXP_MMAP))
++		goto error;
++	cur_flags = get_current_wxp_flags();
++	if (unlikely((req_flags & WXP_COMPLAIN) &&
++		     !(cur_flags & WXP_COMPLAIN)))
++		goto error;
++	if (cur_flags & WXP_VERBOSE)
++		req_flags |= WXP_VERBOSE;
++	else
++		req_flags &= ~WXP_VERBOSE;
++	/*
++	 * Except WXP_COMPLAIN,
++	 * any other flag can't be removed (procattr can
++	 * only be used to make protection stricter).
++	 */
++	if (unlikely(cur_flags & (req_flags ^ cur_flags) &
++		     ~(WXP_COMPLAIN)))
++		goto error;
++	ret = -EINTR;
++
++	get_wxp_flags(new) = req_flags;// & ~WXP_FORCE_WXORX;
++	commit_creds(new);
++	ret = size;
++	goto out;
++
++error:
++	abort_creds(new);
++out:
++	kfree(buf);
++	return ret;
++}
++
++static struct security_hook_list wxprot_hooks[] __ro_after_init = {
++	LSM_HOOK_INIT(bprm_creds_for_exec, wxprot_bprm_set_creds),
++	LSM_HOOK_INIT(check_vmflags, wxprot_check_vmflags),
++	LSM_HOOK_INIT(shm_shmat, wxprot_shm_shmat),
++	LSM_HOOK_INIT(file_mprotect, wxprot_file_mprotect),
++	LSM_HOOK_INIT(file_open, wxprot_file_open),
++	LSM_HOOK_INIT(getprocattr, wxprot_getprocattr),
++	LSM_HOOK_INIT(setprocattr, wxprot_setprocattr),
++};
++
++struct binary_config_header {
++	char magic[8];
++	__le32 rules_size;
++	char hash[WXPROT_CONFIG_HASH_LEN];
++} __packed;
++
++struct binary_config_rule {
++	__le16 path_len;
++	__le16 flags;
++	u8 exact;
++} __packed;
++
++static void config_free(struct wxprot_config_container *data)
++{
++	int i;
++
++	for (i = 0; i < data->rules_size; ++i)
++		kfree(data->rules[i].path);
++	kvfree(data->rules);
++	kfree(data);
++}
++
++static int config_load(const char *buf, size_t buf_len)
++{
++	int ret;
++	int i, j;
++	int path_len;
++	size_t inc;
++	size_t last_path_len = WXPROT_PATH_MAX;
++	bool last_exact = true;
++	const char *pos;
++	struct wxprot_config_container *new;
++	struct binary_config_header *h;
++	struct binary_config_rule *r;
++
++	ret = -EINVAL;
++	if (unlikely(buf_len < sizeof(*h)))
++		goto out;
++
++	h = (struct binary_config_header *) buf;
++	pos = buf + sizeof(*h);
++
++	ret = -EINVAL;
++	if (unlikely(memcmp(h->magic, "WXPROTIN", 8) != 0))
++		goto out;
++
++	ret = -ENOMEM;
++	new = kmalloc(sizeof(*new), GFP_KERNEL);
++	if (unlikely(new == NULL))
++		goto out;
++	kref_init(&new->refcount);
++	new->rules_size = le32_to_cpu(h->rules_size);
++	memcpy(new->hash, h->hash, sizeof(new->hash));
++	if (unlikely(new->rules_size == 0)) {
++		pr_notice("WXP: new rules size 0.\n");
++		new->rules = NULL;
++		goto replace;
++	}
++
++	ret = -ENOMEM;
++	new->rules = kvmalloc_array(new->rules_size, sizeof(*new->rules), GFP_KERNEL | __GFP_ZERO);
++
++	if (unlikely(new->rules == NULL))
++		goto out_new;
++	for (i = 0; i < new->rules_size; ++i) {
++		r = (struct binary_config_rule *) pos;
++		pos += sizeof(*r);
++		inc = pos-buf;
++		path_len = le16_to_cpu(r->path_len);
++		new->rules[i].flags = le16_to_cpu(r->flags);
++		new->rules[i].exact = r->exact;
++
++		ret = -EINVAL;
++		if (unlikely(inc + path_len > buf_len))
++			goto out_rules;
++		if (unlikely(path_len > last_path_len))
++			goto out_rules;
++		if (unlikely((int) new->rules[i].exact != 0 && (int) new->rules[i].exact != 1))
++			goto out_rules;
++		if (unlikely(path_len == last_path_len && new->rules[i].exact && !last_exact))
++			goto out_rules;
++		if (!are_flags_valid(new->rules[i].flags))
++			goto out_rules;
++		if (path_len > 0) {
++			if (pos[0] != '/')
++				goto out_rules;
++			for (j = 0; j < path_len - 1; ++j) {
++				if (pos[j] == '/' &&
++				pos[j+1] == '/')
++					goto out_rules;
++				if (j + 2 < path_len &&
++				pos[j] == '/' &&
++				pos[j+1] == '.' &&
++				pos[j+2] == '/')
++					goto out_rules;
++				if (j + 3 < path_len &&
++				pos[j] == '/' &&
++				pos[j+1] == '.' &&
++				pos[j+2] == '.' &&
++				pos[j+3] == '/')
++					goto out_rules;
++			}
++		}
++
++		ret = -ENOMEM;
++		new->rules[i].path = kmalloc(path_len+1, GFP_KERNEL);
++		if (unlikely(new->rules[i].path == NULL))
++			goto out_rules;
++		memcpy(new->rules[i].path, pos, path_len);
++		new->rules[i].path[path_len] = '\0';
++		if (i > 0 && unlikely(new->rules[i].exact == new->rules[i-1].exact && strcmp(new->rules[i].path, new->rules[i-1].path) == 0))
++			goto out_rules;
++		pos += path_len;
++		last_path_len = path_len;
++		last_exact = new->rules[i].exact;
++	}
++	new->buf_len = (size_t) (pos-buf);
++
++replace:
++	WXPROT_CONFIG_REPLACE(wxprot_config, new, config_free, &wxprot_config_lock);
++	pr_notice("WXP: new rules loaded.\n");
++	return 0;
++
++out_rules:
++	for (i = 0; i < new->rules_size; ++i)
++		kfree(new->rules[i].path);
++	kvfree(new->rules);
++out_new:
++	kfree(new);
++out:
++	pr_notice("WXP: failed to load rules.\n");
++	return ret;
++}
++
++static ssize_t config_dump(char **buf)
++{
++	int i;
++	ssize_t ret;
++	size_t buf_len;
++	char *pos;
++	char *mybuf;
++	u16 path_len;
++	int rulen;
++	struct wxprot_config_container *c;
++	struct wxprot_rule *rc;
++	struct binary_config_header *h;
++	struct binary_config_rule *r;
++
++	ret = -ENOMEM;
++	WXPROT_CONFIG_GET(c, wxprot_config);
++	buf_len = c->buf_len;
++	mybuf = kvmalloc(buf_len, GFP_KERNEL_ACCOUNT);
++	if (unlikely(mybuf == NULL))
++		goto out;
++	rulen = c->rules_size;
++	h = (struct binary_config_header *) mybuf;
++	memcpy(h->magic, "WXPROTIN", 8);
++	h->rules_size = cpu_to_le32(rulen);
++	memcpy(h->hash, c->hash, sizeof(h->hash));
++	pos = mybuf + sizeof(*h);
++	for (i = 0; i < rulen; ++i) {
++		r = (struct binary_config_rule *) pos;
++		pos += sizeof(*r);
++		if (buf_len < (pos - mybuf))
++			goto out;
++		rc = &c->rules[i];
++		r->flags = cpu_to_le16(rc->flags);
++		r->exact = (u8) rc->exact;
++		path_len = strlen(rc->path);
++		r->path_len = cpu_to_le16(path_len);
++		if (buf_len < ((pos - mybuf) + path_len))
++			goto out;
++		memcpy(pos, rc->path, path_len);
++		pos += path_len;
++	}
++	ret = (ssize_t) (pos - mybuf);
++	*buf = mybuf;
++out:
++	WXPROT_CONFIG_PUT(c, config_free);
++	return ret;
++}
++
++static int config_hash(char **buf)
++{
++	int ret;
++	struct wxprot_config_container *config;
++
++	ret = -ENOMEM;
++	*buf = kzalloc(sizeof(config->hash), GFP_KERNEL);
++	if (unlikely(*buf == NULL))
++		goto out;
++
++	WXPROT_CONFIG_GET_RCU(config, wxprot_config);
++	memcpy(*buf, config->hash, sizeof(config->hash));
++	WXPROT_CONFIG_PUT_RCU(config);
++
++	ret = 0;
++out:
++	return ret;
++}
++
++//static DEFINE_WXPROT_SECFS_BOOL_FLAG(enabled_data, enabled);
++
++static struct wxprot_secfs_fptrs fptrs __ro_after_init = {
++	.load = config_load,
++	.dump = config_dump,
++	.hash = config_hash,
++};
++
++static const struct wxprot_secfs_node wxprot_fs[] __initconst = {
++//	{
++//		.name = "enabled",
++//		.type = WXPROT_SECFS_BOOL,
++//		.data = (void *) &enabled_data,
++//	},
++	{
++		.name = "locked",
++		.type = WXPROT_SECFS_BOOL,
++		.data = (void *) &wxprot_config_locked_data,
++	},
++	{
++		.name = "default_flags",
++		.type = WXPROT_SECFS_READONLY_INT,
++		.data = &default_flags,
++	},
++	{
++		.name = ".load",
++		.type = WXPROT_SECFS_CONFIG_LOAD,
++		.data = &fptrs,
++	},
++	{
++		.name = ".dump",
++		.type = WXPROT_SECFS_CONFIG_DUMP,
++		.data = &fptrs,
++	},
++	{
++		.name = "hash",
++		.type = WXPROT_SECFS_CONFIG_HASH,
++		.data = &fptrs,
++	},
++};
++
++int __init wxprot_init(void)
++{
++	int ret;
++	
++	if (wxprot_data_init()) {
++		pr_crit("failed to initialize creds.\n");
++		goto out_fail;
++	}
++
++	struct wxprot_config_container *tmpc = NULL;
++
++	ret = -EINVAL;
++	if (!are_flags_valid(default_flags))
++		goto out_fail;
++	ret = -ENOMEM;
++	tmpc = kzalloc(sizeof(*tmpc), GFP_KERNEL);
++	if (unlikely(tmpc == NULL))
++		goto out_fail;
++	tmpc->buf_len = sizeof(struct binary_config_header);
++	kref_init(&tmpc->refcount);
++	wxprot_config = (struct wxprot_config_container __rcu *) tmpc;
++	ret = wxprot_secfs_subtree_register("config", wxprot_fs, ARRAY_SIZE(wxprot_fs));
++	if (unlikely(ret))
++		goto out_fail;
++	security_add_hooks(wxprot_hooks, ARRAY_SIZE(wxprot_hooks), "wxprot");
++	return 0;
++
++out_fail:
++	kfree(tmpc);
++	//enabled = false;
++	wxprot_config_locked = true;
++
++	return ret;
++}
++
++DEFINE_LSM(wxprot) = {
++	.name = "wxprot",
++	.init = wxprot_init,
++};
+diff -Naur linux-5.9.16-gentoo.orig/security/wxprot/securityfs.c linux-5.9.16-gentoo/security/wxprot/securityfs.c
+--- linux-5.9.16-gentoo.orig/security/wxprot/securityfs.c	1970-01-01 00:00:00.000000000 +0000
++++ linux-5.9.16-gentoo/security/wxprot/securityfs.c	2020-12-27 12:49:18.961045453 +0000
+@@ -0,0 +1,566 @@
++// SPDX-License-Identifier: GPL-2.0
++
++/*
++ * WXPROT Linux Security Module
++ *
++ * Derived from Salvatore Mesoraca <s.mesoraca16@gmail.com>
++ * author: aggi
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2, as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#include <linux/capability.h>
++#include <linux/ctype.h>
++#include <linux/mm.h>
++#include <linux/printk.h>
++#include <linux/security.h>
++#include <linux/seq_file.h>
++#include <linux/spinlock.h>
++#include <linux/uaccess.h>
++
++#include "include/wxprot.h"
++#include "include/utils.h"
++#include "include/securityfs.h"
++
++#define __WXPROT_STR_HELPER(x) #x
++#define WXPROT_STR(x) __WXPROT_STR_HELPER(x)
++
++static struct dentry *fs_root;
++
++static inline bool check_config_write_access(void)
++{
++	if (unlikely(wxprot_config_locked)) {
++		pr_warn("config write access blocked.\n");
++		return false;
++	}
++	return true;
++}
++
++static bool check_config_access(const struct file *file)
++{
++	if (!capable(CAP_MAC_ADMIN))
++		return false;
++	if (file->f_flags & O_WRONLY || file->f_flags & O_RDWR)
++		if (unlikely(!check_config_write_access()))
++			return false;
++	return true;
++}
++
++static int file_flag_show(struct seq_file *seq, void *v)
++{
++	bool *flag = ((struct wxprot_secfs_bool_flag *)seq->private)->flag;
++
++	seq_printf(seq, "%d\n", *flag);
++	return 0;
++}
++
++static ssize_t file_flag_write(struct file *file,
++				const char __user *ubuf,
++				size_t buf_size,
++				loff_t *offset)
++{
++	struct wxprot_secfs_bool_flag *bool_flag =
++		((struct seq_file *) file->private_data)->private;
++	char kbuf[2] = {'A', '\n'};
++	bool nf;
++
++	if (unlikely(*offset != 0))
++		return -ESPIPE;
++
++	if (unlikely(buf_size != 1 && buf_size != 2))
++		return -EPERM;
++
++	if (unlikely(copy_from_user(kbuf, ubuf, buf_size)))
++		return -EFAULT;
++
++	if (unlikely(kbuf[1] != '\n'))
++		return -EPERM;
++
++	switch (kbuf[0]) {
++	case '0':
++		nf = false;
++		break;
++	case '1':
++		nf = true;
++		break;
++	default:
++		return -EPERM;
++	}
++
++	*bool_flag->flag = nf;
++
++	if (strlen(bool_flag->notice_line) > 0)
++		pr_notice("flag \"%s\" set to %d\n",
++			  bool_flag->notice_line,
++			  nf);
++
++	return buf_size;
++}
++
++static int file_flag_open(struct inode *inode, struct file *file)
++{
++	if (unlikely(!check_config_access(file)))
++		return -EACCES;
++	return single_open(file, file_flag_show, inode->i_private);
++}
++
++static const struct file_operations file_flag = {
++	.owner		= THIS_MODULE,
++	.open		= file_flag_open,
++	.write		= file_flag_write,
++	.read		= seq_read,
++	.release	= single_release,
++};
++
++static int file_readonly_int_show(struct seq_file *seq, void *v)
++{
++	int *flag = seq->private;
++
++	seq_printf(seq, "%d\n", *flag);
++	return 0;
++}
++
++static int file_readonly_int_open(struct inode *inode, struct file *file)
++{
++	if (unlikely(!check_config_access(file)))
++		return -EACCES;
++	return single_open(file, file_readonly_int_show, inode->i_private);
++}
++
++static const struct file_operations file_readonly_int = {
++	.owner		= THIS_MODULE,
++	.open		= file_readonly_int_open,
++	.read		= seq_read,
++	.release	= single_release,
++};
++
++static ssize_t file_config_loader_write(struct file *file,
++					const char __user *ubuf,
++					size_t buf_size,
++					loff_t *offset)
++{
++	const struct wxprot_secfs_fptrs *fptrs = file->private_data;
++	char *kbuf = NULL;
++	ssize_t ret;
++
++	ret = -ESPIPE;
++	if (unlikely(*offset != 0))
++		goto out;
++
++	ret = -ENOMEM;
++	kbuf = kvmalloc(buf_size, GFP_KERNEL_ACCOUNT);
++	if (unlikely(kbuf == NULL))
++		goto out;
++
++	ret = -EFAULT;
++	if (unlikely(copy_from_user(kbuf, ubuf, buf_size)))
++		goto out;
++
++	ret = fptrs->load(kbuf, buf_size);
++
++	if (unlikely(ret))
++		goto out;
++
++	ret = buf_size;
++
++out:
++	kvfree(kbuf);
++	return ret;
++}
++
++static int file_config_loader_open(struct inode *inode, struct file *file)
++{
++	if (unlikely(!check_config_access(file)))
++		return -EACCES;
++	file->private_data = inode->i_private;
++	return 0;
++}
++
++static const struct file_operations file_config_loader = {
++	.owner		= THIS_MODULE,
++	.open		= file_config_loader_open,
++	.write		= file_config_loader_write,
++};
++
++static int file_config_show(struct seq_file *seq, void *v)
++{
++	const struct wxprot_secfs_fptrs *fptrs = seq->private;
++	char *buf = NULL;
++	ssize_t ret;
++
++	ret = fptrs->dump(&buf);
++	if (unlikely(ret <= 0))
++		goto out;
++	seq_write(seq, buf, ret);
++	kvfree(buf);
++	ret = 0;
++out:
++	return ret;
++}
++
++static int file_dumper_open(struct inode *inode, struct file *file)
++{
++	if (unlikely(!check_config_access(file)))
++		return -EACCES;
++	return single_open(file, file_config_show, inode->i_private);
++}
++
++static const struct file_operations file_config_dumper = {
++	.owner		= THIS_MODULE,
++	.open		= file_dumper_open,
++	.read		= seq_read,
++	.release	= single_release,
++};
++
++static int file_hash_show(struct seq_file *seq, void *v)
++{
++	const struct wxprot_secfs_fptrs *fptrs = seq->private;
++	char *buf = NULL;
++	int ret;
++
++	ret = fptrs->hash(&buf);
++	if (unlikely(ret))
++		goto out;
++	seq_printf(seq, "%" WXPROT_STR(WXPROT_CONFIG_HASH_LEN) "phN\n", buf);
++	kvfree(buf);
++	ret = 0;
++out:
++	return ret;
++}
++
++static int file_hash_open(struct inode *inode, struct file *file)
++{
++	if (unlikely(!check_config_access(file)))
++		return -EACCES;
++	return single_open(file, file_hash_show, inode->i_private);
++}
++
++static const struct file_operations file_hash = {
++	.owner		= THIS_MODULE,
++	.open		= file_hash_open,
++	.read		= seq_read,
++	.release	= single_release,
++};
++
++static int mk_dir(struct dentry *parent,
++		const char *dir_name,
++		struct dentry **dir_out)
++{
++	int ret = 0;
++
++	*dir_out = securityfs_create_dir(dir_name, parent);
++	if (IS_ERR(*dir_out)) {
++		ret = -PTR_ERR(*dir_out);
++		*dir_out = NULL;
++	}
++	return ret;
++}
++
++static int mk_bool_flag(struct dentry *parent,
++			const char *file_name,
++			struct dentry **dir_out,
++			void *flag)
++{
++	int ret = 0;
++
++	*dir_out = securityfs_create_file(file_name,
++					0600,
++					parent,
++					flag,
++					&file_flag);
++	if (IS_ERR(*dir_out)) {
++		ret = -PTR_ERR(*dir_out);
++		*dir_out = NULL;
++	}
++	return 0;
++}
++
++static int mk_readonly_int(struct dentry *parent,
++			const char *file_name,
++			struct dentry **dir_out,
++			void *readonly_int)
++{
++	int ret = 0;
++
++	*dir_out = securityfs_create_file(file_name,
++					0400,
++					parent,
++					readonly_int,
++					&file_readonly_int);
++	if (IS_ERR(*dir_out)) {
++		ret = -PTR_ERR(*dir_out);
++		*dir_out = NULL;
++	}
++	return 0;
++}
++
++static int mk_config_loader(struct dentry *parent,
++			const char *file_name,
++			struct dentry **dir_out,
++			void *fptrs)
++{
++	int ret = 0;
++
++	*dir_out = securityfs_create_file(file_name,
++					0200,
++					parent,
++					fptrs,
++					&file_config_loader);
++	if (IS_ERR(*dir_out)) {
++		ret = -PTR_ERR(*dir_out);
++		*dir_out = NULL;
++	}
++	return 0;
++}
++
++static int mk_config_dumper(struct dentry *parent,
++				const char *file_name,
++				struct dentry **dir_out,
++				void *fptrs)
++{
++	int ret = 0;
++
++	*dir_out = securityfs_create_file(file_name,
++					0400,
++					parent,
++					fptrs,
++					&file_config_dumper);
++	if (IS_ERR(*dir_out)) {
++		ret = -PTR_ERR(*dir_out);
++		*dir_out = NULL;
++	}
++	return 0;
++}
++
++static int mk_config_hash(struct dentry *parent,
++			const char *file_name,
++			struct dentry **dir_out,
++			void *fptrs)
++{
++	int ret = 0;
++
++	*dir_out = securityfs_create_file(file_name,
++					0400,
++					parent,
++					fptrs,
++					&file_hash);
++	if (IS_ERR(*dir_out)) {
++		ret = -PTR_ERR(*dir_out);
++		*dir_out = NULL;
++	}
++	return 0;
++}
++
++struct wxprot_secfs_subtree {
++	char name[WXPROT_SUBTREE_NN_LEN];
++	size_t size;
++	struct dentry **nodes;
++	const struct wxprot_secfs_node *nodes_description;
++	struct list_head subtree_list;
++};
++
++static LIST_HEAD(subtree_list);
++
++int __init wxprot_secfs_subtree_register(const char *subtree_name,
++				const struct wxprot_secfs_node *nodes,
++				size_t size)
++{
++	int ret;
++	struct wxprot_secfs_subtree *subtree = NULL;
++
++	ret = -EINVAL;
++	if (unlikely(size < 1))
++		goto error;
++	ret = -ENOMEM;
++	subtree = kmalloc(sizeof(*subtree), GFP_KERNEL);
++	if (unlikely(subtree == NULL))
++		goto error;
++	strncpy(subtree->name,
++		subtree_name,
++		sizeof(subtree->name));
++	subtree->name[sizeof(subtree->name)-1] = '\0';
++	subtree->size = size+1;
++	subtree->nodes = kcalloc(subtree->size,
++				sizeof(*subtree->nodes),
++				GFP_KERNEL);
++	if (unlikely(subtree->nodes == NULL))
++		goto error;
++	subtree->nodes_description = nodes;
++	INIT_LIST_HEAD(&subtree->subtree_list);
++	list_add(&subtree->subtree_list, &subtree_list);
++	return 0;
++
++error:
++	kfree(subtree);
++	pr_warn("SECFS: Impossible to register '%s' (%d).\n",
++		subtree_name, ret);
++	return ret;
++}
++
++static inline int __init create_node(enum wxprot_secfs_node_type type,
++					struct dentry *parent,
++					const char *name,
++					struct dentry **output,
++					void *data)
++{
++	switch (type) {
++	case WXPROT_SECFS_BOOL:
++		return mk_bool_flag(parent, name, output, data);
++	case WXPROT_SECFS_READONLY_INT:
++		return mk_readonly_int(parent, name, output, data);
++	case WXPROT_SECFS_CONFIG_LOAD:
++		return mk_config_loader(parent, name, output, data);
++	case WXPROT_SECFS_CONFIG_DUMP:
++		return mk_config_dumper(parent, name, output, data);
++	case WXPROT_SECFS_CONFIG_HASH:
++		return mk_config_hash(parent, name, output, data);
++	default:
++		return -EINVAL;
++	}
++}
++
++static void subtree_unplug(struct wxprot_secfs_subtree *subtree)
++{
++	int i;
++
++	for (i = 0; i < subtree->size; ++i) {
++		if (subtree->nodes[i] != NULL) {
++			securityfs_remove(subtree->nodes[i]);
++			subtree->nodes[i] = NULL;
++		}
++	}
++}
++
++static int __init subtree_plug(struct wxprot_secfs_subtree *subtree)
++{
++	int ret;
++	int i;
++	const struct wxprot_secfs_node *nodes = subtree->nodes_description;
++
++	ret = -EINVAL;
++	if (unlikely(fs_root == NULL))
++		goto out;
++	ret = mk_dir(fs_root,
++			subtree->name,
++			&subtree->nodes[subtree->size-1]);
++	if (unlikely(ret))
++		goto out_unplug;
++	for (i = 0; i < subtree->size-1; ++i) {
++		ret = create_node(nodes[i].type,
++				  subtree->nodes[subtree->size-1],
++				  nodes[i].name,
++				  &subtree->nodes[i],
++				  nodes[i].data);
++		if (unlikely(ret))
++			goto out_unplug;
++	}
++	return 0;
++
++out_unplug:
++	subtree_unplug(subtree);
++out:
++	pr_warn("SECFS: Impossible to plug '%s' (%d).\n", subtree->name, ret);
++	return ret;
++}
++
++static int __init subtree_plug_all(void)
++{
++	int ret;
++	struct list_head *position;
++	struct wxprot_secfs_subtree *subtree;
++
++	ret = -EINVAL;
++	if (unlikely(fs_root == NULL))
++		goto out;
++	ret = 0;
++	list_for_each(position, &subtree_list) {
++		subtree = list_entry(position,
++					struct wxprot_secfs_subtree,
++					subtree_list);
++		if (subtree->nodes[0] == NULL) {
++			ret = subtree_plug(subtree);
++			if (unlikely(ret))
++				goto out;
++		}
++	}
++out:
++	if (unlikely(ret))
++		pr_warn("SECFS: Impossible to plug subtrees (%d).\n", ret);
++	return ret;
++}
++
++static void __init subtree_free_all(bool unplug)
++{
++	struct list_head *position;
++	struct list_head *next;
++	struct wxprot_secfs_subtree *subtree;
++
++	list_for_each_safe(position, next, &subtree_list) {
++		subtree = list_entry(position,
++					struct wxprot_secfs_subtree,
++					subtree_list);
++		list_del(position);
++		if (unplug)
++			subtree_unplug(subtree);
++		kfree(subtree->nodes);
++		kfree(subtree);
++	}
++}
++
++static int mk_root(void)
++{
++	int ret = -1;
++
++	if (fs_root == NULL)
++		ret = mk_dir(NULL, "wxprot", &fs_root);
++	if (unlikely(ret || fs_root == NULL))
++		pr_warn("SECFS: Impossible to create root (%d).\n", ret);
++	return ret;
++}
++
++static inline void rm_root(void)
++{
++	if (likely(fs_root != NULL)) {
++		securityfs_remove(fs_root);
++		fs_root = NULL;
++	}
++}
++
++static inline void __init wxprot_secfs_destroy(void)
++{
++	subtree_free_all(true);
++	rm_root();
++}
++
++int __init wxprot_secfs_init(void)
++{
++	int ret;
++
++	if (wxprot_config_locked)
++		return 0;
++
++	fs_root = NULL;
++
++	ret = mk_root();
++	if (unlikely(ret))
++		goto error;
++
++	ret = subtree_plug_all();
++	if (unlikely(ret))
++		goto error;
++
++	subtree_free_all(false);
++
++	pr_debug("securityfs initilaized.\n");
++	return 0;
++
++error:
++	wxprot_secfs_destroy();
++	pr_crit("impossible to build securityfs.\n");
++	return ret;
++}
++
++fs_initcall(wxprot_secfs_init);
+diff -Naur linux-5.9.16-gentoo.orig/security/wxprot/utils.c linux-5.9.16-gentoo/security/wxprot/utils.c
+--- linux-5.9.16-gentoo.orig/security/wxprot/utils.c	1970-01-01 00:00:00.000000000 +0000
++++ linux-5.9.16-gentoo/security/wxprot/utils.c	2020-12-27 12:49:18.961045453 +0000
+@@ -0,0 +1,93 @@
++// SPDX-License-Identifier: GPL-2.0
++
++/*
++ * WXPROT Linux Security Module
++ *
++ * Derived from Salvatore Mesoraca <s.mesoraca16@gmail.com>
++ * author: aggi
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2, as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#include <linux/dcache.h>
++#include <linux/file.h>
++#include <linux/fs.h>
++#include <linux/mm.h>
++#include <linux/sched.h>
++#include <linux/slab.h>
++#include <linux/vmalloc.h>
++
++#include "include/wxprot.h"
++#include "include/utils.h"
++
++/**
++ * get_absolute_path - return the absolute path for a struct path
++ * @spath: the struct path to report
++ * @buf: double pointer where the newly allocated buffer will be placed
++ *
++ * Returns a pointer into @buf or an error code.
++ *
++ * The caller MUST kvfree @buf when finished using it.
++ */
++char *get_absolute_path(const struct path *spath, char **buf)
++{
++	size_t size = 128;
++	char *work_buf = NULL;
++	char *path = NULL;
++
++	do {
++		kvfree(work_buf);
++		work_buf = NULL;
++		if (size > WXPROT_PATH_MAX) {
++			path = ERR_PTR(-ENAMETOOLONG);
++			goto error;
++		}
++		work_buf = kvmalloc(size, GFP_KERNEL);
++		if (unlikely(work_buf == NULL)) {
++			path = ERR_PTR(-ENOMEM);
++			goto error;
++		}
++		path = d_absolute_path(spath, work_buf, size);
++		size *= 2;
++	} while (PTR_ERR(path) == -ENAMETOOLONG);
++	if (!IS_ERR(path))
++		goto out;
++
++error:
++	kvfree(work_buf);
++	work_buf = NULL;
++out:
++	*buf = work_buf;
++	return path;
++}
++
++/**
++ * get_current_path - return the absolute path for the exe_file
++ *		      in the current task_struct, falling back
++ *		      to the contents of the comm field.
++ * @buf: double pointer where the newly allocated buffer will be placed
++ *
++ * Returns a pointer into @buf or an error code.
++ *
++ * The caller MUST kvfree @buf when finished using it.
++ */
++char *get_current_path(char **buf)
++{
++	struct file *exe_file;
++	char *path = NULL;
++
++	exe_file = get_task_exe_file(current);
++	if (exe_file) {
++		path = get_absolute_path(&exe_file->f_path, buf);
++		fput(exe_file);
++	}
++	if (IS_ERR_OR_NULL(path)) {
++		*buf = kzalloc(TASK_COMM_LEN, GFP_KERNEL);
++		__get_task_comm(*buf, TASK_COMM_LEN, current);
++		path = *buf;
++	}
++	return path;
++}
+diff -Naur linux-5.9.16-gentoo.orig/security/wxprot/wxprot_data.c linux-5.9.16-gentoo/security/wxprot/wxprot_data.c
+--- linux-5.9.16-gentoo.orig/security/wxprot/wxprot_data.c	1970-01-01 00:00:00.000000000 +0000
++++ linux-5.9.16-gentoo/security/wxprot/wxprot_data.c	2020-12-27 12:49:18.961045453 +0000
+@@ -0,0 +1,128 @@
++// SPDX-License-Identifier: GPL-2.0
++
++/*
++ * WXPROT Linux Security Module
++ *
++ * Derived from Salvatore Mesoraca <s.mesoraca16@gmail.com>
++ * author: aggi
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2, as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#include "include/wxprot_data.h"
++
++#include <linux/cred.h>
++#include <linux/lsm_hooks.h>
++#include <linux/mm.h>
++#include <linux/slab.h>
++#include <linux/spinlock.h>
++
++static struct kmem_cache *wxprot_inode_cache;
++
++static int wxprot_cred_alloc_blank(struct cred *cred, gfp_t gfp)
++{
++	struct wxprot_data *d;
++
++	d = kzalloc(sizeof(*d), gfp);
++	if (d == NULL)
++		return -ENOMEM;
++	get_wxprot_data_leftvalue(cred) = d;
++	return 0;
++}
++
++static void wxprot_cred_free(struct cred *cred)
++{
++	struct wxprot_data *d;
++
++	d = get_wxprot_data(cred);
++	if (d != NULL) {
++		kfree(d);
++		get_wxprot_data_leftvalue(cred) = NULL;
++	}
++}
++
++static int wxprot_cred_prepare(struct cred *new, const struct cred *old,
++			     gfp_t gfp)
++{
++	struct wxprot_data *d;
++
++	d = kmemdup(get_wxprot_data(old), sizeof(*d), gfp);
++	if (d == NULL)
++		return -ENOMEM;
++	get_wxprot_data_leftvalue(new) = d;
++	return 0;
++}
++
++static void wxprot_cred_transfer(struct cred *new, const struct cred *old)
++{
++	*get_wxprot_data(new) = *get_wxprot_data(old);
++}
++
++static int wxprot_shm_alloc_security(struct kern_ipc_perm *shp)
++{
++	struct wxprot_shm_data *d;
++
++	d = kzalloc(sizeof(*d), GFP_KERNEL);
++	if (d == NULL)
++		return -ENOMEM;
++	spin_lock_init(&d->lock);
++	get_wxprot_data_leftvalue(shp) = d;
++	return 0;
++}
++
++static void wxprot_shm_free_security(struct kern_ipc_perm *shp)
++{
++	kfree(get_wxprot_data_leftvalue(shp));
++}
++
++static int wxprot_inode_alloc_security(struct inode *inode)
++{
++	struct wxprot_inode_data *d;
++
++	d = kmem_cache_zalloc(wxprot_inode_cache, GFP_NOFS);
++	if (d == NULL)
++		return -ENOMEM;
++	get_wxprot_data_leftvalue(inode) = d;
++	return 0;
++}
++
++static void wxprot_inode_free_security(struct inode *inode)
++{
++	kmem_cache_free(wxprot_inode_cache, get_wxprot_data_leftvalue(inode));
++}
++
++static void wxprot_task_to_inode(struct task_struct *t, struct inode *i)
++{
++	get_wxprot_inode_task(i) = t;
++}
++
++static struct security_hook_list data_hooks[] __ro_after_init = {
++	LSM_HOOK_INIT(cred_alloc_blank, wxprot_cred_alloc_blank),
++	LSM_HOOK_INIT(cred_free, wxprot_cred_free),
++	LSM_HOOK_INIT(cred_prepare, wxprot_cred_prepare),
++	LSM_HOOK_INIT(cred_transfer, wxprot_cred_transfer),
++	LSM_HOOK_INIT(shm_alloc_security, wxprot_shm_alloc_security),
++	LSM_HOOK_INIT(shm_free_security, wxprot_shm_free_security),
++	LSM_HOOK_INIT(inode_alloc_security, wxprot_inode_alloc_security),
++	LSM_HOOK_INIT(inode_free_security, wxprot_inode_free_security),
++	LSM_HOOK_INIT(task_to_inode, wxprot_task_to_inode),
++};
++
++int __init wxprot_data_init(void)
++{
++	int ret;
++
++	wxprot_inode_cache = KMEM_CACHE(wxprot_inode_data, 0);
++	if (!wxprot_inode_cache)
++		return -ENOMEM;
++	ret = wxprot_cred_alloc_blank((struct cred *) current->real_cred, GFP_KERNEL);
++	if (ret) {
++		kmem_cache_destroy(wxprot_inode_cache);
++		return ret;
++	}
++	security_add_hooks(data_hooks, ARRAY_SIZE(data_hooks), "wxprot");
++	return ret;
++}

@@ -1,0 +1,231 @@
+#!/usr/bin/python
+"""
+Created on Mon Nov  4 15:30:54 2019
+Derived from Salvatore Mesoraca <s.mesoraca16@gmail.com>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	author: aggi
+"""
+
+from os.path import isfile, realpath
+from shlex import split
+from re import sub
+from struct import pack
+from sys import argv
+from argparse import ArgumentParser
+from functools import total_ordering
+from hashlib import sha1
+from operator import itemgetter
+
+WXPROT_PATH_MAX = 4096
+WXP_HEAP = 0x0001
+WXP_STACK = 0x0002
+WXP_OTHER = 0x0004
+WXP_WXORX = 0x0008
+WXP_COMPLAIN = 0x0010
+WXP_VERBOSE = 0x0020
+WXP_MMAP = 0x0040
+WXP_TRANSFER = 0x0200
+WXP_NONE = 0x0000
+WXP_MPROTECT = WXP_HEAP | WXP_OTHER | WXP_STACK
+WXP_FULL = WXP_MPROTECT | WXP_WXORX | WXP_MMAP
+WXP_ALL = WXP_FULL | WXP_COMPLAIN | WXP_VERBOSE | WXP_TRANSFER
+
+class WXLoaderException(Exception):
+    ERR_FMT = "WX protection confinguration error at line '{location}': {description}."
+
+    def __init__(self, location, description):
+        super(WXLoaderException, self).__init__()
+        self.location = location
+        self.description = description
+
+    def __str__(self):
+        return self.ERR_FMT.format(location=self.location, description=self.description)
+
+class WXLoader:
+    prog="wxloader"
+    version="0.1"
+    _binary = b''
+    _load = "/sys/kernel/security/wxprot/config/.load"
+
+    @total_ordering
+    class DictKey(object):
+        def __init__(self, obj, *args):
+            self.obj = obj
+
+        def __lt__(self, other):
+            if len(self.obj['path']) < len(other.obj['path']):
+                return False
+            elif len(self.obj['path']) > len(other.obj['path']):
+                return True
+            else:
+                if self.obj['exact'] == other.obj['exact']:
+                    return self.obj['path'] < other.obj['path']
+                elif self.obj['exact']:
+                    return True
+                else:
+                    return False
+
+        def __eq__(self, other):
+            return self.obj['path'] == other.obj['path'] and \
+                   self.obj['exact'] == other.obj['exact']
+
+    def __init__(self, argv):
+        self.argv = argv
+        self.argparse = self.build_argparse(prog=self.prog, version=self.version)
+        self.parsed_args = self.argparse.parse_args(argv[1:])
+        self.config_file = self.parsed_args.config_file
+        self.dicts = []
+        self._binary = b''
+        self.config_lines = []
+        self.config_lines = self.parse_file(self.config_file)
+        self.build_dicts_from_config_lines()
+        self.build_binary()
+
+    def build_argparse(self, prog, version):
+        parser = ArgumentParser(prog=prog)
+        parser.add_argument('-f',
+                            '--config-file',
+                            default='/etc/wxprot.conf',
+                            help='Specify config file. Defaults to "/etc/wxprot.conf"')
+        return parser
+    
+    @staticmethod
+    def are_flags_valid(flags):
+        flags &= ~WXP_TRANSFER
+        if (flags & WXP_ALL) != flags:
+            return False
+        if flags & WXP_MPROTECT and not (flags & WXP_WXORX):
+            return False
+        if flags & (WXP_COMPLAIN | WXP_VERBOSE) and \
+           not (flags & (WXP_MPROTECT | WXP_WXORX | WXP_MMAP)):
+            return False
+        if flags & WXP_MMAP and not (flags & WXP_OTHER):
+            return False
+        return True
+
+    def parse_file(self, cf):
+        ret = []
+        try:
+            with open(cf, 'r', encoding='utf8') as fd:
+                for ln, line in enumerate(fd, 1):
+                    line = split(line, comments=True)
+                    if line:
+                        ret.append(('{}:{}'.format(cf, ln), line))
+        except IOError:
+            pass
+        return ret
+
+    def parse_line(self, location, line):
+        if len(line) < 2:
+            raise WXLoaderException(location, 'not enough fields')
+        path = line[0]
+        flags = ' '.join(line[1:])
+        flags = list(set(sub(r',+', ',', sub(r'\s+', '', flags)).upper().split(',')))
+        allowed_flags = ('FULL',
+                         'VERBOSE',
+                         'WXORX',
+                         'STACK',
+                         'HEAP',
+                         'COMPLAIN',
+                         'OTHER',
+                         'MPROTECT',
+                         'TRANSFER',
+                         'MMAP',
+                         'NONE')
+        if any([f not in allowed_flags for f in flags]):
+            raise WXLoaderException(location, 'invalid flag')
+        if not (('NONE' in flags and len(flags) == 1) or
+                ('NONE' in flags and len(flags) == 2 and 'TRANSFER' in flags) or
+                'NONE' not in flags):
+            raise WXLoaderException(location, 'invalid flags')
+        if (len(path) - (1 if path[-1] == '*' else 0)) > WXPROT_PATH_MAX:
+            raise WXLoaderException(location, 'path too long')
+        if path[0] != '/' and path != '*':
+            raise WXLoaderException(location, 'path is not absolute')
+        d = {}
+        if path[-1] == '*':
+            d['path'] = path[:-1]
+            d['exact'] = False
+        else:
+            d['path'] = path
+            d['exact'] = True
+        if len(d['path']) > 0:
+            if d['path'][-1] == '/' and len(d['path']) > 1:
+                d['path'] = realpath(d['path']) + '/'
+            else:
+                d['path'] = realpath(d['path'])
+        d['flags'] = 0
+        for f in flags:
+            if f == 'FULL':
+                d['flags'] |= WXP_FULL
+            elif f == 'VERBOSE':
+                d['flags'] |= WXP_VERBOSE
+            elif f == 'WXORX':
+                d['flags'] |= WXP_WXORX
+            elif f == 'STACK':
+                d['flags'] |= WXP_STACK | WXP_WXORX
+            elif f == 'HEAP':
+                d['flags'] |= WXP_HEAP | WXP_WXORX
+            elif f == 'COMPLAIN':
+                d['flags'] |= WXP_COMPLAIN
+            elif f == 'OTHER':
+                d['flags'] |= WXP_OTHER | WXP_WXORX
+            elif f == 'MPROTECT':
+                d['flags'] |= WXP_MPROTECT | WXP_WXORX
+            elif f == 'TRANSFER':
+                d['flags'] |= WXP_TRANSFER
+            elif f == 'MMAP':
+                d['flags'] |= WXP_MMAP | WXP_OTHER | WXP_WXORX
+        if not self.are_flags_valid(d['flags']):
+            raise WXLoaderException(location, 'invalid flags')
+        return d
+
+    def build_dicts_from_config_lines(self):
+        seen = set()
+        for location, line in self.config_lines:
+            if line[0] in seen:
+                continue
+            seen.add(line[0])
+            self.dicts.append(self.parse_line(location, line))
+        self.dicts.sort(key=self.DictKey)
+
+    def build_binary(self):
+        self._binary = b'WXPROTIN'
+        self._binary += pack("<I", len(self.dicts))
+        self._binary += self.bhash
+        for rule in self.dicts:
+            rule['path'] = rule['path'].encode('utf8')
+            self._binary += pack("<H", len(rule['path']))
+            self._binary += pack("<H", rule['flags'])
+            self._binary += pack("B", rule['exact'])
+            self._binary += rule['path']
+
+    def __hash(self):
+        return sha1(self.config.encode('utf8'))
+
+    @property
+    def bhash(self):
+        return self.__hash().digest()
+
+    @property
+    def config(self):
+        g = itemgetter(1)
+        return ''.join(
+            [' '.join(g(l)) + '\n' for l in self.config_lines])
+
+wxl = WXLoader(argv)
+with open(wxl._load, 'wb') as fd:
+    fd.write(wxl._binary)
