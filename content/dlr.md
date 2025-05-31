@@ -30,7 +30,7 @@ As a future prospect components implemented in C language could be preferrable:
 - Avoiding data aggregation inside a Java Persistence Layer (Spring-Framework is slow) outside database-core, to improve upon run-time performance with stored-procedures instead
 
 ***Finally all sources and documentation were handed over and contracting did not permit me to keep any sources and documentation of mine.***
-Accounting for total hours of time and work invested salary remained **below** minimum wage for this and subsequent contracting denied at "labor market", meanwhile "entrepreneus" affiliated with EU subsidies established their business.
+Accounting for total hours of time and work invested salary remained **below** minimum wage for this and subsequent contracting denied at "labor market", meanwhile "entrepreneus" affiliated with EU made a billion cash business out of it to benefit shareholder value of theirs.
 
 [^NNP]: [Neural Network Perceptrons](https://en.wikipedia.org/wiki/Perceptron) implemented with [Machine Learning Algorithms](https://en.wikipedia.org/wiki/Machine_Learning) for [Pattern Recognition](https://en.wikipedia.org/wiki/Pattern_recognition) are not in the scope of natural-language-processing (NLP) almost always. It is important to distinguish terms for NLP from Neural Network Perceptrons (NNP) with "AI", since rarely ever these scientific fields of studies intersected but are confused by the marketing fuzz surround "AI".
 

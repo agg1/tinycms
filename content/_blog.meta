@@ -1,4 +1,4 @@
 TINYCMS_CONTENT_HANDLER=tinycms_blog_content
-TINYCMS_PRETEXT_ITEM=""
+TINYCMS_PRETEXT_ITEM="content/blog.htm"
 TINYCMS_NAVITEM_TOC="yes"
 TINYCMS_CONTENT_ITEMS="content/telekom.md content/dlr.md"
