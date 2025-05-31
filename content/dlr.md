@@ -5,15 +5,15 @@ A reference implementation for full-text-search and document categorization was 
 The project then involved:
 
 - An initial concept paper
-- Specification and full re-implementation of automated document, categorization, text analysis, classification
+- Specification and full re-implementation of automated document categorization, text analysis, classification
 - Implementation and integration of web-crawlers, document format adapters and text-content extractors
-- Re-design for scalable multi-threaded text analysis algorithms
+- Scalable multi-threaded text analysis algorithms
 - Re-integration of components with Spring-Framework for the Elasticsearch cluster frontend nodes
-- Extension of the JSON/REST web service API
+- Extension of the [JSON/REST](https://en.wikipedia.org/wiki/REST) web service API for ease of use
 - Release management, software deployment, cluster administration
 - Testing with pharmacovigilance data, BAfS data, GEO location service
 
-In essence document-categorization is a reverse-function of matching search terms against a index, then instead proposing a search-term vector for a document-corpus and matching those term-token-vectors against each other for categorization with use-cases such as:
+In essence document-categorization is a reverse-function of matching search terms against an index, then instead proposing a search-term vector for a document-corpus and matching those term-token-vectors against each other for categorization with use-cases such as:
 
 - ["predictive profiling"](https://en.wikipedia.org/wiki/Predictive_policing)
 - matching of documents against pre-trained topic-trees
@@ -32,5 +32,5 @@ As a future prospect components implemented in C language could be preferrable:
 ***Finally all sources and documentation were handed over and contracting did not permit me to keep any sources and documentation of mine.***
 Accounting for total hours of time and work invested salary remained **below** minimum wage for this and subsequent contracting denied at "labor market", meanwhile "entrepreneus" affiliated with EU made a billion cash business out of it to benefit shareholder value of theirs.
 
-[^NNP]: [Neural Network Perceptrons](https://en.wikipedia.org/wiki/Perceptron) implemented with [Machine Learning Algorithms](https://en.wikipedia.org/wiki/Machine_Learning) for [Pattern Recognition](https://en.wikipedia.org/wiki/Pattern_recognition) are not in the scope of natural-language-processing (NLP) almost always. It is important to distinguish terms for NLP from Neural Network Perceptrons (NNP) with "AI", since rarely ever these scientific fields of studies intersected but are confused by the marketing fuzz surround "AI".
+[^NNP]: [Neural Network Perceptrons](https://en.wikipedia.org/wiki/Perceptron) implemented with [Machine Learning Algorithms](https://en.wikipedia.org/wiki/Machine_Learning) for [Pattern Recognition](https://en.wikipedia.org/wiki/Pattern_recognition) are not in the scope of natural-language-processing (NLP) almost always. It is important to distinguish terms for NLP from Neural Network Perceptrons (NNP) with "AI", since rarely ever these scientific fields of studies intersected but are confused by the marketing fuzz surrounding "AI".
 
