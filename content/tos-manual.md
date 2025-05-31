@@ -372,7 +372,9 @@ Since ARCH=x86 remains the major test vector with TinyCC this implies choice of 
 
 For additional cross-compilation test-vectors towards ARCH=arm32/64 the [rock64 device](https://pine64.org/devices/rock64) from pine64.org project was used with GNU toolchain, linux-5 kernel, and fully "libre" u-boot loader firmware available.
 
-Bootstrapping attempts outside X86 PC realm with both hardware development and software covered are leaving traces back until the early days of [Research Unix](https://en.wikipedia.org/wiki/Research_Unix) for example projects maintained until today at [MIT](https://en.wikipedia.org/wiki/MIT) to study ancient [PDP-11](https://en.wikipedia.org/wiki/PDP-11) of nowadays defunct [Digital Equipment Corporation](https://en.wikipedia.org/wiki/Digital_Equipment_Corporation) (DEC) running [xv6 teaching operating system](https://ocw.mit.edu/courses/6-828-operating-system-engineering-fall-2012/pages/study-materials).
+Bootstrapping attempts outside X86 PC realm with both hardware development and software covered are leaving traces back until the early days of [Research Unix](https://en.wikipedia.org/wiki/Research_Unix) for example projects maintained until today at [MIT](https://en.wikipedia.org/wiki/MIT) to study ancient [PDP-11](https://en.wikipedia.org/wiki/PDP-11) of nowadays defunct [Digital Equipment Corporation](https://en.wikipedia.org/wiki/Digital_Equipment_Corporation) (DEC) running [xv6 teaching operating system](https://ocw.mit.edu/courses/6-828-operating-system-engineering-fall-2012/pages/study-materials).[^PDP11-nuclear-plants]
+
+[^PDP11-nuclear-plants]: [Nuke plants to rely on PDP-11 code UNTIL 2050!](https://www.theregister.com/2013/06/19/nuke_plants_to_keep_pdp11_until_2050)
 
 # Installation Instructions
 With a zero-config approach for a bootable live-system ISO release with read-only squashfs tinyfront system does not need any installation. The ISO image can easily be burned onto CD-ROM or [real-mode bootable hybrid-ISO filesystem](https://en.wikipedia.org/wiki/Hybrid_CD) disk-dumped onto USB flash memory.
