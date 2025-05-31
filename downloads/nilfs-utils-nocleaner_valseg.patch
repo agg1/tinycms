@@ -1,0 +1,271 @@
+diff --git a/bin/Makefile.am b/bin/Makefile.am
+index 1a7de64..6137eaf 100644
+--- a/bin/Makefile.am
++++ b/bin/Makefile.am
+@@ -4,13 +4,16 @@ AM_CFLAGS = -Wall
+ AM_CPPFLAGS = -I$(top_srcdir)/include
+ LDADD = $(top_builddir)/lib/libnilfs.la
+ 
+-bin_PROGRAMS = chcp dumpseg lscp lssu mkcp rmcp
++bin_PROGRAMS = chcp dumpseg valseg lscp lssu mkcp rmcp
+ 
+ chcp_SOURCES = chcp.c
+ chcp_LDADD = $(LDADD) $(LIB_POSIX_SEM) $(top_builddir)/lib/libparser.la
+ 
+ dumpseg_SOURCES = dumpseg.c
+ 
++valseg_SOURCES = valseg.c
++valseg_LDADD = $(LDADD) $(top_builddir)/lib/libcrc32.la
++
+ lscp_SOURCES = lscp.c
+ 
+ lssu_SOURCES = lssu.c
+diff --git a/bin/valseg.c b/bin/valseg.c
+new file mode 100644
+index 0000000..fa31d68
+--- /dev/null
++++ b/bin/valseg.c
+@@ -0,0 +1,243 @@
++/*
++ * valseg.c - NILFS command to validate segment crc32
++ *
++ */
++
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif	/* HAVE_CONFIG_H */
++
++#include <stdio.h>
++
++#if HAVE_STDLIB_H
++#include <stdlib.h>
++#endif	/* HAVE_STDLIB_H */
++
++#if HAVE_UNISTD_H
++#include <unistd.h>
++#endif	/* HAVE_UNISTD_H */
++
++#if HAVE_STRING_H
++#include <string.h>
++#endif	/* HAVE_STRING_H */
++
++#include <errno.h>
++#include "nilfs.h"
++
++#ifdef _GNU_SOURCE
++#include <getopt.h>
++static const struct option long_option[] = {
++	{"all", no_argument, NULL, 'a'},
++	{"verbose", no_argument, NULL, 'v'},
++	{"help", no_argument, NULL, 'h'},
++	{"version", no_argument, NULL, 'V'},
++	{NULL, 0, NULL, 0}
++};
++
++#define VALSEG_USAGE	\
++	"Usage: %s [OPTION]... [DEVICE] [SEGNUM] [SEGNUM...]\n"	\
++	"  -a, --all\t\tvalidate all segments\n"	\
++	"  -v, --verbose\t\tverbose output of validated segment crc hashes\n"	\
++	"  -h, --help\t\tdisplay this help and exit\n"	\
++	"  -V, --version\t\tdisplay version and exit\n"
++#else	/* !_GNU_SOURCE */
++#define VALSEG_USAGE	"Usage: %s [-h] [-V] [device] segnum...\n"
++#endif	/* _GNU_SOURCE */
++
++
++#define VALSEG_BASE	10
++
++extern __u32 crc32_le(__u32 seed, unsigned char const *data, size_t length);
++#define nilfs_crc32(seed, data, length)  crc32_le(seed, data, length)
++
++static int validate_segement(struct nilfs *nilfs, __u64 segnum, void *seg, size_t segsize, int verbose)
++{
++	struct nilfs_psegment pseg;
++	size_t blksize;
++
++	__u32 segsum_crc;
++	__u32 segdat_crc;
++	int crc_offset;
++	int error_code;
++
++	blksize = nilfs_get_block_size(nilfs);
++	nilfs_psegment_init(&pseg, segnum, seg, segsize / blksize, nilfs);
++
++    error_code = 0;
++	if (!nilfs_psegment_is_end(&pseg)) {
++        crc_offset = sizeof(pseg.p_segsum->ss_datasum) + sizeof(pseg.p_segsum->ss_sumsum);
++		segsum_crc = nilfs_crc32(pseg.p_seed, (unsigned char *)pseg.p_segsum + crc_offset,
++			 le32_to_cpu(pseg.p_segsum->ss_sumbytes) - crc_offset);
++        if (le32_to_cpu(pseg.p_segsum->ss_sumsum) != le32_to_cpu(segsum_crc)) {
++            printf("segment summary crc missmatch in segment[%lld]: %08x %08x\n", segnum,
++            (__u32)le32_to_cpu(pseg.p_segsum->ss_sumsum), (__u32)le32_to_cpu(segsum_crc));
++            error_code = 2;
++        }
++
++        crc_offset = sizeof(pseg.p_segsum->ss_datasum);
++        segdat_crc = nilfs_crc32(cpu_to_le32(pseg.p_seed), (unsigned char *)pseg.p_segsum + crc_offset,
++			le64_to_cpu(pseg.p_segsum->ss_nblocks) * le32_to_cpu(pseg.p_blksize) - crc_offset);
++        if (le32_to_cpu(pseg.p_segsum->ss_datasum) != le32_to_cpu(segdat_crc)) {
++            printf("segment data crc missimatch in segment[%lld]: %08x %08x\n", segnum,
++            (__u32)le32_to_cpu(pseg.p_segsum->ss_datasum), (__u32)le32_to_cpu(segdat_crc));
++            error_code = 2;
++        }
++
++		if (verbose) {
++			printf("segment: %lld summary: %08x data: %08x\n",
++				segnum, (__u32)le32_to_cpu(segsum_crc), (__u32)le32_to_cpu(segdat_crc));
++		}
++	}
++	else
++        error_code = 1;
++
++	return error_code;
++}
++
++int main(int argc, char *argv[])
++{
++	struct nilfs *nilfs;
++	__u64 segnum, all, failed;
++	char *dev, *endptr, *progname, *last;
++	void *seg;
++	ssize_t segsize;
++	int c, i, status, verbose;
++#ifdef _GNU_SOURCE
++	int option_index;
++#endif	/* _GNU_SOURCE */
++
++    all = 0;
++    failed = 0;
++	verbose = 0;
++	opterr = 0;
++
++	last = strrchr(argv[0], '/');
++	progname = last ? last + 1 : argv[0];
++
++#ifdef _GNU_SOURCE
++	while ((c = getopt_long(argc, argv, "ahvV",
++				long_option, &option_index)) >= 0) {
++#else	/* !_GNU_SOURCE */
++	while ((c = getopt(argc, argv, "ahvV")) >= 0) {
++#endif	/* _GNU_SOURCE */
++
++		switch (c) {
++		case 'a':
++            all=1;
++            continue;
++		case 'v':
++            verbose=1;
++            continue;
++		case 'h':
++			fprintf(stderr, VALSEG_USAGE, progname);
++			exit(0);
++		case 'V':
++			printf("%s (%s %s)\n", progname, PACKAGE,
++			       PACKAGE_VERSION);
++			exit(0);
++		default:
++			fprintf(stderr, "%s: invalid option -- %c\n",
++				progname, optopt);
++			exit(1);
++		}
++	}
++
++	if (optind > argc - 1) {
++		fprintf(stderr, "%s: too few arguments\n", progname);
++		exit(1);
++	} else {
++		strtoull(argv[optind], &endptr, VALSEG_BASE);
++		if (*endptr == '\0')
++			dev = NULL;
++		else
++			dev = argv[optind++];
++	}
++
++	nilfs = nilfs_open(dev, NULL, NILFS_OPEN_RAW);
++	if (nilfs == NULL) {
++		fprintf(stderr, "%s: cannot open NILFS on %s: %m\n",
++			progname, dev ? : "device");
++		exit(1);
++	}
++
++	if (nilfs_opt_set_mmap(nilfs) < 0)
++		fprintf(stderr, "%s: cannot use mmap\n", progname);
++
++	if (all) {
++        for (i = 0;i<nilfs->n_sb->s_nsegments;i++) {
++            segnum=i;
++            segsize = nilfs_get_segment(nilfs, i, &seg);
++            if (segsize < 0) {
++                fprintf(stderr, "%s: %s\n", progname, strerror(errno));
++                status = 1;
++                goto out;
++            }
++            int ret = validate_segement(nilfs, segnum, seg, segsize, verbose);
++            if (ret > 1) {
++                //status=1;
++                //printf("%llu ", segnum);
++                //fprintf(stderr, "ERROR\n");
++                failed++;
++                status = 1;
++            }
++            if (nilfs_put_segment(nilfs, seg) < 0) {
++                fprintf(stderr, "%s: %s\n", progname, strerror(errno));
++                status = 1;
++                goto out;
++            }
++		}
++
++        if (failed) {
++            printf("[%llu] segments OK\n", le64_to_cpu(nilfs->n_sb->s_nsegments) - failed);
++            printf("[%llu] segments FAILED\n", failed);
++            status=1;
++        }
++        else {
++            printf("ALL [%llu] segments OK\n", le64_to_cpu(nilfs->n_sb->s_nsegments));
++            status = 0;
++        }
++
++        goto out;
++	}
++
++	status = 0;
++	for (i = optind; i < argc; i++) {
++		segnum = strtoull(argv[i], &endptr, VALSEG_BASE);
++		if (*endptr != '\0') {
++			fprintf(stderr, "%s: %s: invalid segment number\n",
++				progname, argv[i]);
++			status = 1;
++			continue;
++		}
++		segsize = nilfs_get_segment(nilfs, segnum, &seg);
++		if (segsize < 0) {
++			fprintf(stderr, "%s: %s\n", progname, strerror(errno));
++			status = 1;
++			goto out;
++        }
++
++        int ret = validate_segement(nilfs, segnum, seg, segsize, verbose);
++        if (ret == 1) {
++            fprintf(stderr, "Unallocated segment[%llu]\n", segnum);
++            status = 0;
++            goto out;
++        }
++        else if (ret) {
++            fprintf(stderr, "ERROR\n");
++            status = 1;
++            goto out;
++        }
++        else
++            printf("Segment [%llu] OK\n", segnum);
++
++		if (nilfs_put_segment(nilfs, seg) < 0) {
++			fprintf(stderr, "%s: %s\n", progname, strerror(errno));
++			status = 1;
++			goto out;
++		}
++	}
++
++ out:
++	nilfs_close(nilfs);
++	exit(status);
++}
