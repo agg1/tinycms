@@ -25,6 +25,27 @@ fi
 # arrange content snippets defined in _<navitem>.meta
 tinycms_default_content() {
 	[ -z "${TINYCMS_CONTENT_ITEMS}" ] && return
+
+	# content item navigation
+	if [ ! -z "${TINYCMS_NAVITEM_TOC}" ] ; then
+		for c in ${TINYCMS_CONTENT_ITEMS} ; do
+			[ -e "${c}" ] || continue
+
+			TINYCMS_ITEM_DATE=""
+			TINYCMS_ITEM_TITLE=""
+			TINYCMS_ITEM_AUTHOR=""
+			# optional <contentitem>.meta
+			if [ -e "${c}".meta ] ; then
+				. "${c}".meta
+			fi
+
+			if [ ! -z "${TINYCMS_ITEM_TITLE}" ] ; then
+				TINYCMS_ITEM_NAV="$(basename ${c})"
+				echo "<div><a href=${TINYCMS_NAVITEM}.html#${TINYCMS_ITEM_NAV} class=content-nav>${TINYCMS_ITEM_TITLE}</a></div>"
+			fi
+		done
+	fi
+
 	for c in ${TINYCMS_CONTENT_ITEMS} ; do
 		[ -e "${c}" ] || continue
 
@@ -53,7 +74,7 @@ tinycms_default_content() {
 		if [ ! -z "${TINYCMS_ITEM_TITLE}" ] ; then
 			TINYCMS_ITEM_NAV="$(basename ${c})"
 			echo -n "<a class=item-anchor href=${TINYCMS_NAVITEM}.html name=${TINYCMS_ITEM_NAV}></a>"
-			echo "<div class=item-header>${TINYCMS_ITEM_TITLE}</div>"
+			echo "<h1 class=item-header>${TINYCMS_ITEM_TITLE}</h1>"
 		fi
 
 		# content item format specific output

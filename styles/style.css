@@ -204,13 +204,22 @@ sup {
 	line-height: 100%;
 }
 
-div.item-header {
+a.content-nav::before { content: "> "; }
+a.content-nav {
+	color: var(--foreground);
+	font-weight:normal;
+	/*line-height: 150%;*/
+}
+
+h1.item-header {
+	text-transform: none;
+	font-weight: bold;
 	background: var(--advice);
 	color: var(--advcolor);
-	font-weight: bold;
 	padding: 0.5em;
 	border-radius: 0.25em;
 	margin: 15px 0px 0px 0px;
+	display: block;
 	clear: both;
 }
 a.item-anchor {
