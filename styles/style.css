@@ -263,6 +263,8 @@ a {
 	text-decoration: none;
 	color: var(--link);
 	font-weight: bold;
+	/* word-break: normal; */
+	/* white-space: normal; */
 	/*padding-right: 0.25em;*/
 }
 a:hover {color: var(--highlight);}
@@ -336,6 +338,16 @@ textarea {
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 
+/*em {
+	color: orange;
+}
+
+strong {
+	font-weight: normal;
+	color: orange;
+}*/
+
 strong em {
+	font-weight: normal;
 	color: red;
 }

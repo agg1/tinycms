@@ -15,8 +15,10 @@ In other words if any system cannot be compiled or booted without the presence o
 Relying on [OpenSource Software](https://en.wikipedia.org/wiki/Open-source_software) with permissive licensing is a necessitity but **insufficient for full compliance**, and **vendor-neutral** standards must be strictly distinguished from vendor specifications, for example:
 
 - C language following ANSI/ISO C99 standard had proven decent, somewhat stable for >25years.
-- In comparison rust-lang follows a vendor specification but not any standard.
+- In comparison rust-lang follows a vendor specification but not any standard.[^rust-nostandard]
 - Although C++ language is standardized it introduces mandatory transitive dependencies towards components not covered by standardization always.
+
+[^rust-nostandard]: [Without any vendor-neutral standard followed development cannot agree upon a common baseline of which releases or versions of rustc could compile itself self-hosting](https://blog.rust-lang.org/inside-rust/2025/05/29/redesigning-the-initial-bootstrap-sequence)
 
 With tinyfront system *full standards compliance is not feasible* and extensions beyond standardization are unavoidable, but the system ***must not violate standards*** with given definition by introducing a mandatory extension beyond [POSIX](https://en.wikipedia.org/wiki/POSIX) or [ANSI/ISO C](https://en.wikipedia.org/wiki/ANSI_C) unnecessarily. Tinyfront system fights the battle against the malicious vendor strategy to ["Embrace, Extend, Extinguish"](https://en.wikipedia.org/wiki/Embrace,_extend,_and_extinguish) which almost always non-standardized mandatory extensions were utilized for in the tech industry dominated by hostile actors imposing their [anti-competitive](https://en.wikipedia.org/wiki/Anti-competitive) habits with vendor-specifications onto developers and millions of users. Furthermore standardization itself is prone to infringement of **compatibility** and **interoperability** when following latest iterations with all features implemented (C++, C11), hence a conservative approach is reasonable to exclude various standard features since this does not necessarily violate standards. Often *incomplete* implementations of standards is less severe than violating a standard with mandatory extensions.
 
@@ -35,9 +37,12 @@ Due to various interdependent issues involved with tinyfront system acceptance c
 - of cause [GCC](https://gcc.gnu.org) C and C++ compilers can be retained to extend test-coverage
 - but GNU toolchain (and llvm/clang) will be fully optional with tinyfront system
 
-Because since when GNU compiler switched to C++ implementation language internally itself and related [discussions summarized at https://lwn.net/Articles/542457](https://lwn.net/Articles/542457) focus on "benefits" of C++ implementation, without recognizing the long-term impact this had onto bootstrapping of GNU toolchain itself and the hindrance C++ was for vendor-neutral toolchain portability. Since then bootstrapping GCC remains blocked at gcc-4.7.4 since any later version requires a C++ compiler. Furthermore gcc-4.7.4 must be kept in maintenance and testing indefinitely since it is this version which permits the transition from C to C++. [GNU](https://gnu.org) and [FSF](https://fsf.org) projects obsoleted this compiler version long time ago without any further support provided, in parallel to various important architectures (aarch64!, riscv64) available with later compiler versions only which enforces a toolchain upgrade in violation of acceptance criteria. Any system which requires a recent GNU compiler or llvm/clang compiler version then locked into a transitive dependency towards C++ always, even when software itself was not written in C++ but C only! [^GNU-features]
+Because since when GNU compiler switched to C++ implementation language internally itself and related [discussions summarized at https://lwn.net/Articles/542457](https://lwn.net/Articles/542457) focus on "benefits" of C++ implementation, without recognizing the long-term impact this had onto bootstrapping of GNU toolchain itself and the hindrance C++ was for **vendor-neutral toolchain portability**. Since then bootstrapping GCC remains blocked at gcc-4.7.4 since any later version requires a C++ compiler. Furthermore gcc-4.7.4 must be kept in maintenance and testing indefinitely since it is this version which permits the transition from C to C++. [GNU](https://gnu.org) and [FSF](https://fsf.org) projects obsoleted this compiler version long time ago without any further support provided, in parallel to various important architectures (aarch64!, riscv64) available with later compiler versions only which enforces a toolchain upgrade in violation of acceptance criteria. Any system which requires a recent GNU compiler or llvm/clang compiler version then locked into a transitive dependency towards C++ always, even if software itself was not written in C++ but C only! [^GNU-features]
 
 [^GNU-features]: "In GNU utils, incompatible features and extensions are a feature, not a bug." [harmful.cat-v.org](http://harmful.cat-v.org/software/GNU)
+
+![GCC Lines-of-Code](files/gcc-lines-of-code.webp)
+<div class=item-footer>GCC Soars Past 14.5 Million Lines Of Code - <a href='https://www.phoronix.com/news/MTg3OTQ'>phoronix.com</a></div>
 
 # Bootstrapping
 A precise definition for "full source bootstrapping" is required and important terminology must not be confused for:
@@ -63,7 +68,7 @@ All test-vectors should have a complete bootstrapping path which so far was conf
 
 [^cpp-singlepass]: It is unknown if a compiler can be implemented as single-pass design for and with C++, and this could explain the [abysmal compile-time performance and memory usage](https://www.google.com/search?q=g%2B%2B+memory+usage) of C++ compilers.
 
-Mentioned approaches of tinyfront system and bootstrappable.org do not conflict with each other, but strictness of acceptance criteria varies slightly with either. Relying upon a clean bootstrapping chain implies some important [portability](#Portability-and-Test-Coverage) issues were coped with appropriately in any case. And with either approach gcc/binutils can be bootstrapped, with bootstrappable.org this being mandatory, and with a complete tinyfront system profile GNU toolchain remaining optional.
+Menioned approaches of tinyfront system and bootstrappable.org do not conflict with each other, but strictness of acceptance criteria varies slightly with either. Relying upon a clean bootstrapping chain implies some important [software portability](https://en.wikipedia.org/wiki/Software_portability#Source_code_portability) issues were coped with appropriately in any case. And with either approach gcc/binutils can be bootstrapped, with bootstrappable.org this being mandatory, and with a complete tinyfront system profile GNU toolchain remaining optional.
 
 # Portability and Test Coverage
 To ensure system integration test-coverage of any test-vector a **complete** system must compile and boot with a "full source bootstrapping" workflow.
@@ -92,16 +97,13 @@ PCC(5)		|--		|--		|--		|--		|--		|--		|
 SCC(6)		|--		|--		|--		|--		|--		|--		|
 
 1. A complete mostly-POSIX base system profile fully supported with TinyCC establishes a **baseline** for other variants (cproc, PCC, SCC), since i386-tcc partially covers relevant issues for any other such approach such as sanitizing the profile from c++. Obviously TinyCC alone cannot retain full test-coverage hence portability towards and with GCC is retained too.[^tinycc-regressions]
-2. [Oasis-Linux](https://github.com/oasislinux/oasis) supports a userspace with cproc compiler but kernel/bootloader require additional gcc/binutils to retain a complete system still.
+2. [Oasis-Linux](https://github.com/oasislinux/oasis) supports a userspace with [cproc compiler](https://sr.ht/~mcf/cproc) but kernel/bootloader require additional gcc/binutils to retain a complete system still.
 3. Notable development efforts for RISCV64 is relevant for a long term perspective since Intel&reg; obsoleted their own X86 real-mode support required for both booting tinyfront system with and most important ARCH=x86 was the basis for any bootstrapping to begin with. Furthermore currently no other than ARCH=x86 got a somewhat clean and verified bootstrapping dependency chain implemented with [live-bootstrap](https://github.com/fosslinux/live-bootstrap) and a cross-compilation from any HOST=x86 towards another TARGET possible if that was not fully covered by [bootstrappable.org](https://bootstrappable.org) yet.
 4. Other architectures are irrelevant with tinyfront system portability and compatibility.
 5. No complete system integration is known to exist with [Portable C Compiler](https://en.wikipedia.org/wiki/Portable_C_Compiler) toolchain.
-6. No complete system integration is known to exist with [Simple C Compiler](http://www.simple-cc.org/) toolchain.
+6. No complete system integration is known to exist with [Simple C Compiler](http://www.simple-cc.org) toolchain.
 
 [^tinycc-regressions]: [Regression testing with a complete i586-tinycc-linux2-musl.iso distribution](https://lists.gnu.org/archive/html/tinycc-devel/2024-11/msg00016.html)
-
-![GCC Lines-of-Code](files/gcc-lines-of-code.webp)
-<div class=item-footer>GCC Soars Past 14.5 Million Lines Of Code - <a href='https://www.phoronix.com/news/MTg3OTQ'>phoronix.com</a></div>
 
 As a consequence it is ARCH=x86 *only* which intersects to cover all test-cases for different toolchains including TinyCC.
 
@@ -229,7 +231,8 @@ This kernel can be compiled with TinyCC either [AoT](https://en.wikipedia.org/wi
 To ensure test-coverage with various other kernel versions and architectures GCC must be retained as it was shown with bootstrappable.org kernel bootstrapping procedure. For tinyfront system finally it is ARCH=x86 again intersecting with linux-2.4 kernel remaining *only* to ensure portability towards different toolchains with TinyCC.
 
 # Libc
-In principle [musl-libc](https://musl.libc.org) is portable towards many architectures and recent kernel versions with [decent reputation for it's size and standard-compliance](https://www.etalabs.net/compare_libcs.html). And the choice of [standard C-library](https://en.wikipedia.org/wiki/C_standard_library) is limited by the available linux-2.4 kernel and TinyCC toolchain combination already. Since bootstrappable.org too had chosen musl-libc-1.1.24 version with an early bootstrapping stage and TinyCC involved in live-bootstrap, some related portability issues were coped with already:
+The choice of [standard C-library](https://en.wikipedia.org/wiki/C_standard_library) is limited by the available linux-2.4 kernel and TinyCC toolchain combination already. In principle [musl-libc](https://musl.libc.org) is portable towards many architectures and recent kernel versions with [decent reputation for it's size and standard-compliance](https://www.etalabs.net/compare_libcs.html).
+Since bootstrappable.org too had chosen musl-libc-1.1.24 version with an early bootstrapping stage and TinyCC involved in live-bootstrap, some related portability issues were coped with already:
 
 &nbsp;		|musl-1.1.x		|musl-1.2.x	|newlib(3)	|glibc(4)	|
 ----------------|-----------------------|-------------------------------|---------------|
@@ -274,7 +277,7 @@ Finally a complete test-vector got intersected for [i586-tinycc-linux2-musl.iso]
 AS86(2)		|**(OK)**	|--		|--		|--		|--		|--		|
 Binutils	|OK(5)		|OK		|OK		|OK		|OK		|OK		|
 
-1. [Regression in tinycc x86 assembly/pre-processor parser](https://lists.gnu.org/archive/html/tinycc-devel/2024-11/msg00020.html) noticed. [Principle issues with x86 16bit real-mode assembly](https://lists.gnu.org/archive/html/tinycc-devel/2024-11/msg00055.html) exist. TinyCC cannot support X86 real-mode assembler required for bootloader, kernel and tccboot.
+1. [Regression in TinyCC X86 assembly/pre-processor parser](https://lists.gnu.org/archive/html/tinycc-devel/2024-11/msg00020.html) noticed. [Principle issues with X86 16bit real-mode assembly](https://lists.gnu.org/archive/html/tinycc-devel/2024-11/msg00055.html) exist. TinyCC itself cannot support X86 real-mode assembler required for bootloader, kernel and tccboot.
 2. As an alternative [AS86 assembler](https://wiki.osdev.org/AS86) exists which a re-write of real-mode asm from [AT&T GAS syntax](https://tldp.org/HOWTO/Assembly-HOWTO/gas.html) to [Intel syntax](https://en.wikipedia.org/wiki/X86_assembly_language#Syntax) is necessary with.
 3. Inline assembly inside linux-2.4 kernel, musl-libc and [syslinux-3.86 bootloader](https://wiki.syslinux.org) passed.
 4. The status of riscv64 assembler with TinyCC was not investigated yet. Notable development activity exists for a long-term perspective.
