@@ -20,7 +20,7 @@ In essence document-categorization is a reverse-function of matching search term
 - automated text-content summary
 - furthermore optional automated translations to match and categorize foreign-language texts
 
-Software-Architecture, run-time performance, features were significantly improved upon. In principle run-time performance and scalability are highly critical with these types of system and algorithms.
+Software-Architecture, run-time performance, features were significantly improved upon. In principle run-time performance and scalability are highly critical with these types of systems and algorithms.
 
 As a future prospect components implemented in C language could be preferrable:
 
