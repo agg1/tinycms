@@ -41,7 +41,7 @@ tinycms_default_content() {
 
 			if [ ! -z "${TINYCMS_ITEM_TITLE}" ] ; then
 				TINYCMS_ITEM_NAV="$(basename ${c})"
-				echo "<div><a href=${TINYCMS_NAVITEM}.html#${TINYCMS_ITEM_NAV} class=content-nav>${TINYCMS_ITEM_TITLE}</a></div>"
+				echo "<div><a href=#${TINYCMS_ITEM_NAV} class=content-nav>${TINYCMS_ITEM_TITLE}</a></div>"
 			fi
 		done
 	fi
