@@ -25,7 +25,7 @@ WEBSRV_ROOT="/tmp/www"
 # htdocs output directory
 TINYCMS_OUTDIR="${WEBSRV_ROOT}"/tinycms
 
-# each nav-item needs a ${TINYCMS_CONTENTDIR}/<navitem>.meta file
+# each nav-item needs a ${TINYCMS_CONTENTDIR}/_<navitem>.meta file
 TINYCMS_NAVITEMS="index docs download src projects blog contact"
 
 # cleanup
