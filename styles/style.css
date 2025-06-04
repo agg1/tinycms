@@ -87,7 +87,7 @@ a.navimg:hover {color: var(--highlight);}
 	animation: flash 0.5s step-end infinite;
 }*/
 #cmdline {
-	margin: 10px 0px 0px 0px;
+	margin: 10px 0px 5px 0px;
 
 	overflow: hidden;
 	white-space: nowrap;
