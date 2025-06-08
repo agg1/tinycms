@@ -109,7 +109,7 @@ tinycms_default_content() {
 tinycms_download_content() {
 	#
 	echo '<div class=col><pre>'
-	for f in $(find ${TINYCMS_DOWNLOAD_DIR} -type f) ; do
+	for f in $(find ${TINYCMS_DOWNLOAD_DIR} -type f -maxdepth 1) ; do
 		_f=$(ls --time-style='+%Y-%m-%d %M:%H' -gho "${f}")
 		_f_size="$(echo ${_f} | cut -d' ' -f3)"
 		_f_date="$(echo ${_f} | cut -d' ' -f4)"
