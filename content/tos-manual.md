@@ -352,7 +352,12 @@ Various additional features are:
 - scientific authoring
 - multi-media fun
 
-See [tinyfront-profile.list](downloads/tinyfront-profile.list) in the download section for an overview of all components retained with tinyfront system.
+Please see the download section for an overview of all components retained with the current tinyfront system devdrop release build with TinyCC-toolchain:
+
+- [tinyfront-packages.list](downloads/x86-embedded/666666/tinyfront-packages.list) (extensive runtime testing necessary)
+- [crossbuild scripting build.log](downloads/x86-embedded/666666/build.log) (please note: gcc/binutils are overridden for CC|LD|AR|AS=tcc with make.conf inside the cross-chroot instead of what crossdev reports)
+- [ebuild logfiles](downloads/x86-embedded/666666/elogs-x86-666666.tar.gz) (individual ebuild.log files in detail show configure/make output with CC|LD|AR|AS=tcc)
+- ***Due to missing server resources and absent funding no binary artifacts nor bootable operating system ISO can be supplied***
 
 # Bootstrapping and Compilation Instructions
 Tinyfront system integration was designed to simplify ["full source bootstrapping"](#Acceptance-Criteria) of a complete system from scratch to emit a final bootable [CD ISO](https://en.wikipedia.org/wiki/ISO_9660) release fully automated with:
@@ -360,12 +365,12 @@ Tinyfront system integration was designed to simplify ["full source bootstrappin
 - [live-bootstrap](https://github.com/fosslinux/live-bootstrap) scripting
 - and [crossbuild](src.html#gitweb.md) scripting for kernel and userspace cross-compilation towards all relevant test-vectors
 
-Development and testing of individual software updates is possible with the available [system integration tooling](#Development-Utilities) to integrate updates into subsequent release builds of bootable tinyfront ISOs release builds.
+Development and testing of individual software updates is possible with the available [system integration tooling](#Development-Utilities) to integrate updates into subsequent release builds of bootable tinyfront ISOs.
 
 # Considerations for Choice of Hardware
 Since ARCH=x86 remains the major test vector with TinyCC this implies choice of hardware made with it. Sufficient and affordable long term refurbished hardware supply with processing power is available:
 
-- However portability towards linux-2.4 impacts support for USB, SATA, Ethernet, SMP must remain with it. In particular a backport for a commonly available usb-ethernet is required because no standard implementation for ethernet chips exists for dozens of different manufacturers.
+- However portability towards linux-2.4 impacts support for USB, SATA, Ethernet, SMP must remain with it. In particular a commonly available usb-ethernet is backported because no standard implementation for ethernet chips exists for dozens of different manufacturers.
 - Some Libre Firmware options such as [Coreboot](https://www.coreboot.org) or [U-Boot Loader](https://www.u-boot.org) should exist even when those would clash with acceptance criteria by introducing circular dependencies into the build-time dependencies of firmware bootstrapping.
 - Free/Open SoC designs for FPGA deployment should exist even when those would clash with acceptance criteria by introducing circular dependencies with hardware design and development utilities.
 - For ARCH=x86 some interesting i486 SoC deployment onto FPGA was demonstrated already with [ao486 project](https://github.com/MiSTer-devel/ao486_MiSTer), which too got libre firmware support implemented. Depending on vendor chosen for hardware-development some of this is [free/opensource with Lattice-Semi](https://wiki.debian.org/FPGA/Lattice).
@@ -384,8 +389,7 @@ Recently booting tinyfront system succeeded:
 
 - with some ancient Thinkpad T40 manufactured year 2004 including audio, ethernet support confirmed
 - and some modern cheapo HP T620 thin client whose onboard ethernet chip is not supported with linux-2.4
-
-Since no common Ethernet exists for dozens of different vendors at least one common usb-ethernet dongle must be backported to linux-2.4 tinyfront kernel. Then internet is available with tinyfront system on almost any X86 system which can boot real-mode.
+- since no common standard Ethernet driver exists for dozens of different mainboard vendors one [common usb-ethernet dongle is backported to linux-2.4 tinyfront kernel](https://codeberg.org/aggi/linux-tcc/commit/eded1c2b34eceef0ca2ff8cb6e6e68f3385f772f)
 
 # System Configuration
 see [rc.tiny](src.html#gitweb.md):
