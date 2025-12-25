@@ -18,4 +18,4 @@ The wxprot project is not maintained anymore and was deactivated because:
 
 In comparison [ASLR](https://en.wikipedia.org/wiki/ASLR) would not make any such assumptions, remains mostly transparent to user-space, and too can prevent most malicious code injection arbitrary code execution attempts.
 
-With [linux-2.4 tinyfront kernel](docs.html#Kernel) instead [ASLR patch from grsecurity](https://codeberg.org/aggi/linux-tcc/commit/ae733137c6ca29551a2dfdb05c44e7742276ea08) project was applied as a minimum kernel security precuation.
+With [linux-2.4 tinyfront kernel](docs.html#Kernel) instead [ASLR patch from grsecurity](https://codeberg.org/aggi/linux-tcc/commit/ae733137c6ca29551a2dfdb05c44e7742276ea08) project was applied as a minimum kernel security precaution.
