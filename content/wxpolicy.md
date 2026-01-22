@@ -1,6 +1,6 @@
 Modern Intel&reg; CPUs support [NX-bit](https://en.wikipedia.org/wiki/NX_bit#x86) to separate memory areas for storing data and instructions with read-only and executable permissions applied accordingly, to prevent run-time malicious-code injection attemps into main memory. However, for this security feature to have any effect memory access must be restricted and policies applied by kernel, for both [kernel-space and user-space](https://en.wikipedia.org/wiki/User_space_and_kernel_space) code. Several projects seeked to implement and mainline memory-protection policy enforcement with kernel:
 
-- [Grsecurity](https://grsecurity.net) which terminated public access to reguarly maintained patches for recent kernel versions
+- [Grsecurity](https://grsecurity.net) which terminated public access to regularly maintained patches for recent kernel versions
 - and [S.A.R.A linux security module](https://sara.smeso.it/en/latest) which was not forward-ported to recent kernel versions for many years
 
 To re-introduce this security feature with recent linux-5 kernel series the [linux security module](https://en.wikipedia.org/wiki/Linux_Security_Module) for [W\^X policy enforcement](https://en.wikipedia.org/wiki/W%5EX) was forked, simplified, and forward ported to linux-5 kernel versions with the name wxprot given:
