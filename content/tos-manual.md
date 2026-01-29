@@ -368,7 +368,9 @@ Since ARCH=x86 remains the major test vector with TinyCC this implies choice of 
 - Some Libre Firmware options such as [Coreboot](https://www.coreboot.org) or [U-Boot Loader](https://www.u-boot.org) should exist even when those would clash with acceptance criteria by introducing circular dependencies into the build-time dependencies of firmware bootstrapping.
 - Free/Open SoC designs for FPGA deployment should exist even when those would clash with acceptance criteria by introducing circular dependencies with hardware design and development utilities.
 - For ARCH=x86 some interesting i486 SoC deployment onto FPGA was demonstrated already with [ao486 project](https://github.com/MiSTer-devel/ao486_MiSTer), which too got libre firmware support implemented. Depending on vendor chosen for hardware-development some of this is [free/opensource with Lattice-Semi](https://wiki.debian.org/FPGA/Lattice).
-- Avoiding any circular dependency with hardware development tooling involved indicates a most severe regression of more than 40years back till [z80](https://en.wikipedia.org/wiki/Zilog_Z80) with [S-100 BUS](https://en.wikipedia.org/wiki/S-100_bus) 16bit systems predating the [original IBM PC](https://en.wikipedia.org/wiki/IBM_Personal_Computer) proprietary system.
+- Avoiding any circular dependency with hardware development tooling involved indicates a most severe regression of more than 40years back till [z80](https://en.wikipedia.org/wiki/Zilog_Z80) with [S-100 BUS](https://en.wikipedia.org/wiki/S-100_bus) 16bit systems predating the [original IBM PC](https://en.wikipedia.org/wiki/IBM_Personal_Computer) proprietary system.[^NASA-spaceshuttle-parts]
+
+[^NASA-spaceshuttle-parts]: [For Hardware Parts, NASA Boldly Goes . . . on eBay - The New York Times](https://www.nytimes.com/2002/05/12/us/for-parts-nasa-boldly-goes-on-ebay.html)
 
 For additional cross-compilation test-vectors towards ARCH=arm32/64 the [rock64 device](https://pine64.org/devices/rock64) from pine64.org project was used with GNU toolchain, linux-5 kernel, and fully "libre" u-boot loader firmware available.
 
@@ -381,9 +383,9 @@ With a zero-config approach for a bootable live-system ISO release with read-onl
 
 Recently booting tinyfront system succeeded:
 
-- with some ancient Thinkpad T40 manufactured year 2004 including audio, ethernet support confirmed
-- and some modern cheapo HP T620 thin client whose onboard ethernet chip is not supported with linux-2.4
-- since no common standard Ethernet driver exists for dozens of different mainboard vendors one [common usb-ethernet dongle is backported to linux-2.4 tinyfront kernel](https://codeberg.org/aggi/linux-tcc/commit/eded1c2b34eceef0ca2ff8cb6e6e68f3385f772f)
+- with some ancient Thinkpad T40 manufactured year 2004 including audio, usb, ethernet, pata-ide, vesa-framebuffer support confirmed
+- and some modern cheapo HP T620 thin client including smp, usb, sata/ahci, gitabit-ethernet, vesa-framebuffer support confirmed
+- since no common standard gitabit Ethernet driver other than e1000 and rtl8168 exists with linux-tcc kernel for dozens of different mainboard vendors, at least one [common usb-ethernet dongle is backported to linux-2.4 tinyfront kernel](https://codeberg.org/aggi/linux-tcc/commit/eded1c2b34eceef0ca2ff8cb6e6e68f3385f772f) as a fallback option
 
 # System Configuration
 see [rc.tiny](src.html#gitweb.md):
