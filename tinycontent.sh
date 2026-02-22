@@ -81,11 +81,12 @@ tinycms_default_content() {
 		echo '<div class=col>'
 		case "${c}" in
 		*.md)
+			_entity="$(basename ${c} .md)"
 			# markdown items with optional table of contents
 			if [ -z "${TINYCMS_ITEM_TOC}" ] ;then
-				markdown -f+tables,+footnote,+html ${c}
+				markdown -f+tables,+footnote,+html -C "fn_${_entity}" ${c}
 			else
-				markdown -T -f+toc,+tables,+footnote,+html ${c}
+				markdown -T -f+toc,+tables,+footnote,+html -C "fn_${_entity}" ${c}
 			fi
 		;;
 		*.htm*)
