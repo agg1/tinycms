@@ -84,9 +84,9 @@ tinycms_default_content() {
 			_entity="$(basename ${c} .md)"
 			# markdown items with optional table of contents
 			if [ -z "${TINYCMS_ITEM_TOC}" ] ;then
-				markdown -f+tables,+footnote,+html -C "fn_${_entity}" ${c}
+				markdown -f+tables,+footnote,+html -C "${_entity}" ${c}
 			else
-				markdown -T -f+toc,+tables,+footnote,+html -C "fn_${_entity}" ${c}
+				markdown -T -f+toc,+tables,+footnote,+html -C "${_entity}" ${c}
 			fi
 		;;
 		*.htm*)
