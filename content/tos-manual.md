@@ -278,8 +278,9 @@ Finally a complete test-vector got intersected for [i586-tinycc-linux2-musl.iso]
 &nbsp;		|x86 real-mode	|x86_32		|x86-64		|aarch32(6)	|aarch64	| riscv-64	|
 ----------------|---------------|---------------|---------------|---------------|---------------|---------------|
 **TinyCC**	|**MISSING(1)**	|**OK(3)**	|INCOMPLETE	|INCOMPLETE	|--		|OPEN(4)	|
-AS86(2)		|**(OK)**	|--		|--		|--		|--		|--		|
+AS86(2)		|**(PARTIAL)**	|--		|--		|--		|--		|--		|
 Binutils	|OK(5)		|OK		|OK		|OK		|OK		|OK		|
+**YASM(7)**	|**OK(7)**	|OK		|OK		|--		|--		|--		|
 
 1. [Regression in TinyCC X86 assembly/pre-processor parser](https://lists.gnu.org/archive/html/tinycc-devel/2024-11/msg00020.html) noticed. [Principle issues with X86 16bit real-mode assembly](https://lists.gnu.org/archive/html/tinycc-devel/2024-11/msg00055.html) exist. TinyCC itself cannot support X86 real-mode assembler required for bootloader, kernel and tccboot.
 2. As an alternative [AS86 assembler](https://wiki.osdev.org/AS86) exists which a re-write of real-mode asm from [AT&T GAS syntax](https://tldp.org/HOWTO/Assembly-HOWTO/gas.html) to [Intel syntax](https://en.wikipedia.org/wiki/X86_assembly_language#Syntax) is necessary with.
@@ -287,6 +288,7 @@ Binutils	|OK(5)		|OK		|OK		|OK		|OK		|OK		|
 4. The status of riscv64 assembler with TinyCC was not investigated yet. Notable development activity exists for a long-term perspective.
 5. [GNU binutils](https://www.gnu.org/software/binutils/) can be compiled/bootstrapped with TinyCC, which introduces a circular dependency because binutils were required **before** bootstrapping of them was possible. Bootstrappable.org however implemented various loaders and assemblers (stage0-posix.hex, mesc compiler etc.) and with this approach TinyCC and binutils can be emitted to proceed without a circular dependency.
 6. [arm-tcc compilation error while processing inline assembly](https://lists.gnu.org/archive/html/tinycc-devel/2025-05/msg00003.html)
+7. [YASM](https://www.tortall.net/projects/yasm/manual/html/manual.html) is a capable assembler for X86 16,32,64bit targets supporting GNU-as syntax and ELF output hence it can fully replace entire binutils-as to process [TOS kernel](#Kernel) bootcode. In conjunction with TinyCC used as system toolchain together with YASM this significantly shrinks the [build-time circular dependency graph to process assembly language](#Bootstrapping).
 
 # Boot Code
 Tinyfront system and too bootstrappable.org rely upon [X86](https://en.wikipedia.org/wiki/X86) hardware introduced in 1978 ever since then supporting real-mode [IBM-PC BIOS](https://en.wikipedia.org/wiki/BIOS) boot! Since [Intel&reg; began phasing out real-mode boot](https://www.anandtech.com/show/12068/intel-to-remove-bios-support-from-uefi-by-2020) with their latest [UEFI](https://en.wikipedia.org/wiki/UEFI_CSM#CSM_booting) this poses an unpreceeded risk for **loss of [backward compatibility](https://en.wikipedia.org/wiki/Backward_compatibility)** preventing tinyfront system boot and threatening the **only** complete bootstrapping path to arrive at a bootable kernel that existed with bootstrappable.org and was relied upon for any other system that got cross-compiled from some ARCH=x86 host.[^CSM-emulation]
